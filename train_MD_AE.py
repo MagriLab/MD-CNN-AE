@@ -33,7 +33,7 @@ Ntest = 600
 
 # Boolean 
 LATENT_STATE = True # save latent state
-SHUFFLE = True # shuffle before splitting into sets
+SHUFFLE = True # shuffle before splitting into sets, test set is extracted before shuffling
 REMOVE_MEAN = False # train on fluctuating velocity
 
 ## ae configuration
@@ -48,7 +48,7 @@ filter_window= (3,3)
 batch_norm = False
 
 ## training
-nb_epoch = 1
+nb_epoch = 500
 batch_size = 100
 learning_rate = 0.0001
 learning_rate_list = [0.001, 0.001, 0.0005, 0.0001, 0.00005] #[0.001,0.0001,0.00001]
@@ -182,7 +182,7 @@ print('Saving results')
 ts = time.time()
 st = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d__%H_%M_%S')
 # Create a new folder for the results
-folder = 'C:/Users/ym917/OneDrive - Imperial College London/PhD/AE-ESN/Scripts/PIV/Autoencoder/MD_' + str(latent_dim) + '__' + st + './'
+folder = '/home/ym917/OneDrive/PhD/Code_md-ae/MD_' + str(latent_dim) + '__' + st + '/'
 os.mkdir(folder)
 
 filename = folder + 'test_summary.txt'
