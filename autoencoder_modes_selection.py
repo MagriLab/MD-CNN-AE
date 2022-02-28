@@ -11,8 +11,7 @@ def rms_amplitude(signal):
     # amp_rms: an array of rms amplitude, has length = latent_dim
     # signal_mean: np.mean(siganl,axis=0). Time averaged signal mean
     if signal.ndim != 2:
-        print("Input shape must be (time, latent_dim).")
-        sys.exit()
+        sys.exit("Input shape must be (time, latent_dim).")
     amp_rms = np.mean((signal-np.mean(signal,0))**2,0)**0.5 
     signal_mean = np.mean(signal,0)
     return amp_rms, signal_mean
@@ -24,8 +23,7 @@ def energy_freq(signal):
     # return: 
     # signal_energy: an array to total energy of each mode (parseval's theorem)
     if signal.ndim != 2:
-        print("Input shape must be (time, latent_dim).")
-        sys.exit() 
+        sys.exit("Input shape must be (time, latent_dim).") 
     signal_energy = []
     for n in range(0,signal.shape[1]):
         signal_in = signal[:,n]
@@ -41,8 +39,7 @@ def percent_output(modes,y):
     # return:
     # per_mode: an array of percentage contribution to y
     if modes.ndim != 5:
-        print("Input shape must be (modes,snapshots,Nx,Ny,Nu).")
-        sys.exit() 
+        sys.exit("Input shape must be (modes,snapshots,Nx,Ny,Nu).") 
     per_mode = np.mean(np.sum(modes,axis=(2,3,4))/np.sum(y,axis=(1,2,3)),axis=1) # contribution per mode, adds up to 1
     return per_mode
 
@@ -54,8 +51,7 @@ def NED(a,k):
     # return:
     # NED: an array of NED, length = number of modes
     if a.ndim != 2:
-        print("Input shape must be (time, latent_dim).")
-        sys.exit() 
+        sys.exit("Input shape must be (time, latent_dim).") 
     n = a.shape[0] # total number of snapshots
     a = normalise(a,axis=0) # scale values to be between 0 and 1
     NED = [] 
