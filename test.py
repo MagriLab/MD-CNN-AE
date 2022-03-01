@@ -1,54 +1,38 @@
 import numpy as np
-from matplotlib import pyplot as plt
-from mode_decomposition import *
+import matplotlib.pyplot as plt
 import h5py
+import mode_decomposition as md
+import autoencoder_modes_selection as ranking
 
-# parameters
-D       = 196.5;    # Model diameter in mm
-Uinf    = 15;       # Nominal free stream velocity
-fPIV    = 720;      # PIV sampling frequency
-dt      = 1/fPIV;   # Delta t between image pairs
-#=================== downsampled data ======================
-filename = "./PIV4_downsampled_by8.h5" # .h5 file of data
-hf = h5py.File(filename,'r')
-z = np.array(hf.get('z'))
-y = np.array(hf.get('y'))
-vy = np.array(hf.get('vy'))
-vz = np.array(hf.get('vz'))
-hf.close()
-print("Finished loading data.")
-# print(vy.shape)
-[nt,nz,ny] = vz.shape
+folder = '/home/ym917/OneDrive/PhD/Code_md-ae/MD_10__2022_02_21__10_01_23/'
 
-vy = np.transpose(vy,[2,1,0])
-vz = np.transpose(vz,[2,1,0]) #(ny,nz,nt)
-#==================== prepare data =========================
-# build matrix
-Q = np.vstack((vz,vy)) # new shape [2*ny,nz,nt]
-# Q = np.reshape(Q,(2*nz*ny,nt)) # [2*ny*nz,nt]
-v_true = np.copy(Q)
-print(Q.shape)
+filename = folder + 'results.h5'
+file = h5py.File(filename,'r')
+u_train = np.array(file.get('u_train')) # fluctuating velocity if REMOVE_MEAN is true
+y_train = np.array(file.get('y_train'))
+u_test = np.array(file.get('u_test')) # fluctuating velocity if REMOVE_MEAN is true
+y_test = np.array(file.get('y_test'))
+u_avg = np.array(file.get('u_avg'))
+latent_train = np.array(file.get('latent_train'))
+latent_test = np.array(file.get('latent_test'))
+modes_train = np.array(file.get('modes_train'))
+modes_test = np.array(file.get('modes_test')) #(modes,snapshots,Nx,Ny,Nu)
+file.close()
 
+filename = folder + 'Model_param.h5'
+file = h5py.File(filename,'r')
+lmb = file.get('lmb')[()]#1e-05 #regulariser
+drop_rate = file.get('drop_rate')[()]
+features_layers = np.array(file.get('features_layers')).tolist()
+latent_dim = file.get('latent_dim')[()]
+act_fct = file.get('act_fct')[()].decode()
+resize_meth = file.get('resize_meth')[()].decode()
+filter_window= np.array(file.get('filter_window')).tolist()
+batch_norm = file.get('batch_norm')[()]
+REMOVE_MEAN = file.get('REMOVE_MEAN')[()]
+file.close()
 
-a = POD(Q)
-
-PlotWhichVelocity = 'v' 
-
-fig = plt.figure(1)
-# title = "Mode in decoder " + str(WhichDecoder+1)
-title = "POD Modes "+PlotWhichVelocity
-plt.suptitle(title)
-for iphi in range(9):
-    ax = plt.subplot(3,3,iphi+1,title=str(iphi+1),xticks=[],yticks=[])
-    pltV = a.modes[:,iphi];
-    pltV = np.reshape(pltV,[2*ny,nz])
-    if PlotWhichVelocity == 'w': # Q was built [vz,vy]
-        pltV = pltV[0:ny,:]
-    elif PlotWhichVelocity == 'v':
-        pltV = pltV[ny:,:]
-    elif PlotWhichVelocity == 'V':
-        pltV = (pltV[0:ny,:]**2 + pltV[ny:,:]**2)**0.5
-    
-    ax = plt.imshow(pltV,'jet')
-    plt.colorbar()
+plt.figure()
+plt.plot(latent_test[:,5])
+plt.plot(latent_test[:,6])
 plt.show()

@@ -2,6 +2,7 @@
 # 4 methods available
 
 import numpy as np
+from matplotlib import pyplot as plt
 import sys
 
 # rms amplitude and mean
@@ -45,6 +46,7 @@ def percent_output(modes,y):
 
 
 # Normalised Entropy Difference (Fan, 2019)
+# Fan, Y. J. (2019) Autoencoder node saliency: Selecting relevant latent representations. Pattern Recognition. 88 643-653. 10.1016/j.patcog.2018.12.015
 def NED(a,k):
     # a: latent vector with shape (snapshots,latent_dim)
     # k: number of histogram bins
@@ -60,22 +62,30 @@ def NED(a,k):
         p = i/float(n) # probability of latent variable in a histogram bin
         p = p[p!=0] # consider only occupied bins
         k_occupied = p.size
-        log2p = np.log2(p)
-        E = -np.sum(p*log2p)
-        NED.append(1-(E/np.log2(k_occupied)))
+        if k_occupied == 1: # log2(1) is 0, cannot divide by 0
+            NED.append(1)
+        else:
+            log2p = np.log2(p)
+            E = -np.sum(p*log2p)
+            NED.append(1-(E/np.log2(k_occupied)))
     return NED
 
 
 # normalise vector to between 0 and 1
+# a constant variable will return a list of 0
 def normalise(a,axis):
     # a: is a 2D array
     # axis: the axis to perform normalisation  
     # return:
     # norm_a: a normalised along the chosen axis. If axis is not None, then norm_a has the same shape as a
-    wdith = np.ptp(a.astype('float64'),axis=axis,keepdims=True)
+    width = np.ptp(a.astype('float64'),axis=axis,keepdims=True)
     minimum = np.amin(a.astype('float64'),axis=axis,keepdims=True)
-    norm_a = (a - minimum)/wdith
+    
+    # make sure the next step do not produce nan
+    # in norm_a the column/row where a is constant will be all 0
+    idx_const = (width == 0.).nonzero()
+    print('Peak-to-peak value ', idx_const, ' is 0., this variable is constant')
+    width[idx_const] = width[idx_const] + 0.0001
+
+    norm_a = (a - minimum)/width
     return norm_a
-
-
-# Fan, Y. J. (2019) Autoencoder node saliency: Selecting relevant latent representations. Pattern Recognition. 88 643-653. 10.1016/j.patcog.2018.12.015
