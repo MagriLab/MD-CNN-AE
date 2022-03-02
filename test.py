@@ -32,7 +32,29 @@ batch_norm = file.get('batch_norm')[()]
 REMOVE_MEAN = file.get('REMOVE_MEAN')[()]
 file.close()
 
+a = ranking.NED(latent_test,2,act_fct=act_fct)
 plt.figure()
-plt.plot(latent_test[:,5])
-plt.plot(latent_test[:,6])
+plt.bar(np.arange(10)+1,a)
+
+# plt.figure()
+# plt.plot(latent_test[:,4])
+# plt.plot(latent_test[:,5])
+# plt.plot(latent_test[:,6])
+
+
+b = ranking.normalise(latent_test,axis=0,data_range=[-1,1])
+# plt.figure()
+# plt.plot(b[:,4])
+# plt.plot(b[:,5])
+# plt.plot(b[:,6])
+
+for x in range(4,7):
+    i,temp = np.histogram(b[:,x],np.linspace(0,1,5+1))
+    print(i)
+    print(temp)
+    p = i/float(600) # probability of latent variable in a histogram bin
+    p = p[p!=0] # consider only occupied bins
+    k_occupied = p.size
+    print(k_occupied)
+
 plt.show()
