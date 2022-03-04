@@ -69,6 +69,7 @@ def NED(a,k,act_fct):
     NED = [] 
     for x in range(0,a.shape[1]):
         i,temp = np.histogram(a[:,x],np.linspace(0,1,k+1))
+        # print(i)
         p = i/float(n) # probability of latent variable in a histogram bin
         p = p[p!=0] # consider only occupied bins
         k_occupied = p.size
