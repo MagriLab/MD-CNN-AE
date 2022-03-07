@@ -4,7 +4,7 @@ import h5py
 import mode_decomposition as md
 import autoencoder_modes_selection as ranking
 
-folder = '/home/ym917/OneDrive/PhD/Code_md-ae/MD_10__2022_02_21__10_01_23/'
+folder = '/home/ym917/OneDrive/PhD/Code_md-ae/MD_10__2022_02_19__14_04_07/'
 
 filename = folder + 'results.h5'
 file = h5py.File(filename,'r')
@@ -31,3 +31,13 @@ filter_window= np.array(file.get('filter_window')).tolist()
 batch_norm = file.get('batch_norm')[()]
 REMOVE_MEAN = file.get('REMOVE_MEAN')[()]
 file.close()
+
+WhichDecoder = 1
+vy = modes_test[WhichDecoder,:,:,:,0].astype('float64')
+vy = np.transpose(vy,[1,2,0])
+vz = modes_test[WhichDecoder,:,:,:,1].astype('float64')
+vz = np.transpose(vz,[1,2,0]) #(ny,nz,nt)
+X = np.vstack((vz,vy)) # new shape [2*ny,nz,nt]
+print(X.shape)
+
+pod = md.POD(X,method='classic')

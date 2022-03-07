@@ -125,7 +125,7 @@ class POD:
         self.keep_shape = keep_shape
 
         # Prepare data matrix Q
-        self.nx,self.nt,self.grid_shape,self.Q = self.prepare_data(X)
+        self.nx,self.nt,self.grid_shape,self.Q,self.Q_mean = self.prepare_data(X)
         self.w = self.set_weight()
 
 
@@ -163,11 +163,11 @@ class POD:
         nx = Q.shape[0]
 
         # remove mean
-        self.Q_mean = np.mean(Q,axis=1)
+        Q_mean = np.mean(Q,axis=1)
         for ti in range(0,nt):
-            Q[:,ti] = Q[:,ti] - self.Q_mean;  
+            Q[:,ti] = Q[:,ti] - Q_mean;  
 
-        return nx,nt,grid_shape,Q
+        return nx,nt,grid_shape,Q,Q_mean
 
 
     def set_weight(self):
@@ -178,6 +178,7 @@ class POD:
     
     def classic_POD(self,Q):
         C = Q @ ((Q.T)*(self.w.T)) # 2-point spatial correlation tesnsor: Q*Q'
+        # print('C is Hermitian?',np.allclose(C,np.conj(C.T)))
         lam,Phi = np.linalg.eigh(C) # right eigenvectors and eigenvalues
         idx = np.argsort(lam) # sort
         idx = np.flip(idx)
@@ -207,7 +208,14 @@ class POD:
         original_shape.extend([-1])
         self.modes = np.reshape(self.modes,original_shape)
 
-    def reconstruct(self,Q_mean,Q,Phi,number_of_modes,t,shape='self'):
+    def reconstruct(self,t,number_of_modes,Q_mean='self',Q='self',Phi='self',shape='self'):
+        # Input: 
+        # shape: reshape the reconstructed vector into this shape, if not given the result is reshaped to self.grid_shape
+        # If any of 'Q_mean', 'Q', or 'Phi' is not given, the method uses the values stored in self
+        if Q_mean == 'self' or Q == 'self' or Phi == 'self':
+            Q_mean = self.Q_mean
+            Q = self.Q
+            Phi = self.Phi
         if self.typePOD == 'classic':
             # temporal coefficient A
             self.A = Q.T @ Phi #(nt,nx)

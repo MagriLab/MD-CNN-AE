@@ -17,7 +17,6 @@ def plot_ae_modes(modes,modes_to_plot,savefig=False,path=None):
     for WhichDecoder in modes_to_plot:
         vy = modes[WhichDecoder,:,:,:,0].astype('float64')
         vz = modes[WhichDecoder,:,:,:,1].astype('float64')
-
         vy = np.transpose(vy,[1,2,0])
         vz = np.transpose(vz,[1,2,0]) #(ny,nz,nt)
         X = np.vstack((vz,vy)) # new shape [2*ny,nz,nt]
