@@ -1,9 +1,10 @@
 from os import name
+import sys
 import tensorflow as tf
 tf.keras.backend.set_floatx('float32')
 
 from tensorflow.keras import Input
-from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, UpSampling2D, concatenate, BatchNormalization, Conv2DTranspose, Flatten, PReLU, Reshape, Dropout, AveragePooling2D, Add, Lambda, Layer, TimeDistributed, LSTM
+from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, UpSampling2D, concatenate, BatchNormalization, Conv2DTranspose, Flatten, PReLU, Reshape, Dropout, AveragePooling2D, Add, Lambda, Layer
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.initializers import Constant
 from tensorflow.keras.optimizers import Adam
@@ -190,7 +191,7 @@ class MD_Autoencoder(Model):
         self.resize_meth = resize_meth
 
         if latent_dim == 1:
-            print("Latent dimension is 1, use standard autoencoder instead")
+            sys.exit("Latent dimension is 1, use standard autoencoder instead")
 
         input_shape = (Nx[0],Nx[1],Nu)
         self.input_img = Input(shape = input_shape)
@@ -254,6 +255,24 @@ class MD_Autoencoder(Model):
             names.append(name)
         return names
 
+
+class hierarchicalAE(Model):
+    # Ref: K. Fukami, T. Nakamura, and K. Fukagata, ``Convolutional neural network based hierarchical autoencoder for nonlinear mode decomposition of fluid field data," Physics of Fluids, 32, 095110, (2020)
+    def __init__(self,Nx,Nu,number_of_modes,features_layers=[1],latent_dim=2,
+        filter_window=(3,3),act_fct='tanh',batch_norm=False,
+        drop_rate=0.0, lmb=0.0,resize_meth='bilinear', *args, **kwargs):
+        self.Nx = Nx
+        self.Nu = Nu
+        self.number_of_modes = number_of_modes # number of modes (number of subnetworks)
+        self.features_layer = features_layers
+        self.latent_dim = latent_dim # the size of the latent space for each mode
+        self.filter_window = filter_window
+        self.act_fct = act_fct
+        self.batch_norm = batch_norm
+        self.drop_rate = drop_rate
+        self.lmb = lmb
+        self.resize_meth = resize_meth
+        super(hierarchicalAE,self).__init__(*args, **kwargs)
 
 
 class ResizeImages(Layer):

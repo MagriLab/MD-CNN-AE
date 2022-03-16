@@ -1,43 +1,58 @@
+import tensorflow as tf
+from tensorflow.keras.layers import Input, Add, Dense, Conv2D, Concatenate, MaxPooling2D, UpSampling2D, Flatten, Reshape
+from tensorflow.keras.models import Model
+from tensorflow.keras import backend as K
 import numpy as np
-import matplotlib.pyplot as plt
-import h5py
-import mode_decomposition as md
-import autoencoder_modes_selection as ranking
+import pandas as pd
 
-folder = '/home/ym917/OneDrive/PhD/Code_md-ae/MD_10__2022_02_19__14_04_07/'
+num_of_ts=10000 # number of time slice
+x_num=384; y_num=192; # no need to change
+act = 'linear'
+input_img = Input(shape=(y_num,x_num,1))
+input_enc_1 = Input(shape=(1,))
+input_enc_2 = Input(shape=(1,))
 
-filename = folder + 'results.h5'
-file = h5py.File(filename,'r')
-u_train = np.array(file.get('u_train')) # fluctuating velocity if REMOVE_MEAN is true
-y_train = np.array(file.get('y_train'))
-u_test = np.array(file.get('u_test')) # fluctuating velocity if REMOVE_MEAN is true
-y_test = np.array(file.get('y_test'))
-u_avg = np.array(file.get('u_avg'))
-latent_train = np.array(file.get('latent_train'))
-latent_test = np.array(file.get('latent_test'))
-modes_train = np.array(file.get('modes_train'))
-modes_test = np.array(file.get('modes_test')) #(modes,snapshots,Nx,Ny,Nu)
-file.close()
+x1 = Conv2D(16, (3,3),activation=act, padding='same')(input_img)
+x1 = MaxPooling2D((2,2),padding='same')(x1)
+x1 = Conv2D(8, (3,3),activation=act, padding='same')(x1)
+x1 = MaxPooling2D((2,2),padding='same')(x1)
+x1 = Conv2D(8, (3,3),activation=act, padding='same')(x1)
+x1 = MaxPooling2D((2,2),padding='same')(x1)
+x1 = Conv2D(8, (3,3),activation=act, padding='same')(x1)
+x1 = MaxPooling2D((2,2),padding='same')(x1)
+x1 = Conv2D(4, (3,3),activation=act, padding='same')(x1)
+x1 = MaxPooling2D((2,2),padding='same')(x1)
+x1 = Conv2D(4, (3,3),activation=act, padding='same')(x1)
+x1 = MaxPooling2D((2,2),padding='same')(x1)
+x1 = Reshape([3*6*4])(x1)
+x1 = Dense(64,activation=act)(x1)
+x1 = Dense(32,activation=act)(x1)
+x1 = Dense(16,activation=act)(x1)
 
-filename = folder + 'Model_param.h5'
-file = h5py.File(filename,'r')
-lmb = file.get('lmb')[()]#1e-05 #regulariser
-drop_rate = file.get('drop_rate')[()]
-features_layers = np.array(file.get('features_layers')).tolist()
-latent_dim = file.get('latent_dim')[()]
-act_fct = file.get('act_fct')[()].decode()
-resize_meth = file.get('resize_meth')[()].decode()
-filter_window= np.array(file.get('filter_window')).tolist()
-batch_norm = file.get('batch_norm')[()]
-REMOVE_MEAN = file.get('REMOVE_MEAN')[()]
-file.close()
+x1 = Dense(1,activation=act)(x1)
+x1 = Concatenate()([x1, input_enc_1,input_enc_2])
 
-WhichDecoder = 1
-vy = modes_test[WhichDecoder,:,:,:,0].astype('float64')
-vy = np.transpose(vy,[1,2,0])
-vz = modes_test[WhichDecoder,:,:,:,1].astype('float64')
-vz = np.transpose(vz,[1,2,0]) #(ny,nz,nt)
-X = np.vstack((vz,vy)) # new shape [2*ny,nz,nt]
-print(X.shape)
+x1 = Dense(16,activation=act)(x1)
+x1 = Dense(32,activation=act)(x1)
+x1 = Dense(64,activation=act)(x1)
+x1 = Dense(72,activation=act)(x1)
+x1 = Reshape([3,6,4])(x1)
+x1 = UpSampling2D((2,2))(x1)
+x1 = Conv2D(4, (3,3),activation=act, padding='same')(x1)
+x1 = UpSampling2D((2,2))(x1)
+x1 = Conv2D(8, (3,3),activation=act, padding='same')(x1)
+x1 = UpSampling2D((2,2))(x1)
+x1 = Conv2D(8, (3,3),activation=act, padding='same')(x1)
+x1 = UpSampling2D((2,2))(x1)
+x1 = Conv2D(8, (3,3),activation=act, padding='same')(x1)
+x1 = UpSampling2D((2,2))(x1)
+x1 = Conv2D(8, (3,3),activation=act, padding='same')(x1)
+x1 = UpSampling2D((2,2))(x1)
+x1 = Conv2D(16, (3,3),activation=act, padding='same')(x1)
 
-pod = md.POD(X,method='classic')
+x_final = Conv2D(1, (3,3),padding='same')(x1)
+autoencoder = Model([input_img,input_enc_1,input_enc_2], x_final)
+autoencoder.compile(optimizer='adam', loss='mse')
+
+# print(autoencoder.summary())
+print(autoencoder.layers[17].output)
