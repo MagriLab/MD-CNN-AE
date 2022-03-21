@@ -1,6 +1,7 @@
 from os import name
 import sys
 import tensorflow as tf
+from tensorflow.keras import backend as K
 tf.keras.backend.set_floatx('float32')
 
 from tensorflow.keras import Input
@@ -10,7 +11,6 @@ from tensorflow.keras.initializers import Constant
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 
-from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 
 import numpy as np
 
@@ -254,6 +254,16 @@ class MD_Autoencoder(Model):
             name = prefix + '_' + str(i)
             names.append(name)
         return names
+    
+    def get_encoder(self):
+        return self.encoder
+    
+    # returns a list with all decoders
+    def get_decoders(self):
+        decoders = []
+        for name in self.name_decoder:
+            decoders.append(self.get_layer(name))
+        return decoders
 
 
 class hierarchicalAE_sub(Model):
@@ -298,9 +308,9 @@ class hierarchicalAE_sub(Model):
     
     def call(self,inputs,training=None):
         x = self.encoder(inputs[0])
-        new_z = inputs[1::]
-        new_z.extend([x])
         if len(inputs) != 1:
+            new_z = inputs[1::]
+            new_z.extend([x])
             x = self.concatenate(new_z)
         x = self.decoder(x)
         return x
@@ -308,6 +318,12 @@ class hierarchicalAE_sub(Model):
     def summary(self):
         mdl = Model(self.full_input,self.out)
         return mdl.summary()
+    
+    def get_encoder(self):
+        return self.encoder
+    
+    def get_decoder(self):
+        return self.decoder
     
 
 class ResizeImages(Layer):
