@@ -1,5 +1,6 @@
 from os import name
 import sys
+from typing import Concatenate
 import tensorflow as tf
 tf.keras.backend.set_floatx('float32')
 
@@ -256,14 +257,14 @@ class MD_Autoencoder(Model):
         return names
 
 
-class hierarchicalAE(Model):
+class hierarchicalAE_sub(Model):
     # Ref: K. Fukami, T. Nakamura, and K. Fukagata, ``Convolutional neural network based hierarchical autoencoder for nonlinear mode decomposition of fluid field data," Physics of Fluids, 32, 095110, (2020)
-    def __init__(self,Nx,Nu,number_of_modes,features_layers=[1],latent_dim=2,
+    def __init__(self,Nx,Nu,previous_dim,features_layers=[1],latent_dim=2,
         filter_window=(3,3),act_fct='tanh',batch_norm=False,
         drop_rate=0.0, lmb=0.0,resize_meth='bilinear', *args, **kwargs):
         self.Nx = Nx
         self.Nu = Nu
-        self.number_of_modes = number_of_modes # number of modes (number of subnetworks)
+        self.previous_latent_dim = previous_dim # [latent_dim_subnet1, latent_dim_subnet2, latent_dim_subnet3 ...]
         self.features_layer = features_layers
         self.latent_dim = latent_dim # the size of the latent space for each mode
         self.filter_window = filter_window
@@ -272,8 +273,27 @@ class hierarchicalAE(Model):
         self.drop_rate = drop_rate
         self.lmb = lmb
         self.resize_meth = resize_meth
-        super(hierarchicalAE,self).__init__(*args, **kwargs)
+        super(hierarchicalAE_sub,self).__init__(*args, **kwargs)
 
+        # DEFINE INPUT
+        input_shape = (Nx[0],Nx[1],Nu)
+        self.input_img = Input(shape = input_shape)
+        # DEFINE INPUT FROM PREVIOUS SUBNETS
+        self.previous_vec = []
+        for dim in previous_dim:
+            self.previous_vec.extend([Input(shape=dim)])
+
+        # DEFINE ENCODER
+        self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)
+        layer_size = self.encoder.get_layer_shape()
+
+        # COMBINE SUBNETS
+        self.concatenate = Concatenate()
+
+        # DEFINE DECODER
+        new_latent_dim = np.sum(previous_dim) + latent_dim
+        self.decoder = Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=new_latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth)
+    
 
 class ResizeImages(Layer):
     """Resize Images to a specified size
