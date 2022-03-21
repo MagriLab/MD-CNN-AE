@@ -1,11 +1,10 @@
 from os import name
 import sys
-from typing import Concatenate
 import tensorflow as tf
 tf.keras.backend.set_floatx('float32')
 
 from tensorflow.keras import Input
-from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, UpSampling2D, concatenate, BatchNormalization, Conv2DTranspose, Flatten, PReLU, Reshape, Dropout, AveragePooling2D, Add, Lambda, Layer
+from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, UpSampling2D, Concatenate, BatchNormalization, Conv2DTranspose, Flatten, PReLU, Reshape, Dropout, AveragePooling2D, Add, Lambda, Layer
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.initializers import Constant
 from tensorflow.keras.optimizers import Adam
@@ -259,9 +258,11 @@ class MD_Autoencoder(Model):
 
 class hierarchicalAE_sub(Model):
     # Ref: K. Fukami, T. Nakamura, and K. Fukagata, ``Convolutional neural network based hierarchical autoencoder for nonlinear mode decomposition of fluid field data," Physics of Fluids, 32, 095110, (2020)
-    def __init__(self,Nx,Nu,previous_dim,features_layers=[1],latent_dim=2,
+    def __init__(self,Nx,Nu,previous_dim=[],features_layers=[1],latent_dim=1,
         filter_window=(3,3),act_fct='tanh',batch_norm=False,
         drop_rate=0.0, lmb=0.0,resize_meth='bilinear', *args, **kwargs):
+        super(hierarchicalAE_sub,self).__init__(*args,**kwargs)
+
         self.Nx = Nx
         self.Nu = Nu
         self.previous_latent_dim = previous_dim # [latent_dim_subnet1, latent_dim_subnet2, latent_dim_subnet3 ...]
@@ -273,15 +274,14 @@ class hierarchicalAE_sub(Model):
         self.drop_rate = drop_rate
         self.lmb = lmb
         self.resize_meth = resize_meth
-        super(hierarchicalAE_sub,self).__init__(*args, **kwargs)
 
         # DEFINE INPUT
         input_shape = (Nx[0],Nx[1],Nu)
-        self.input_img = Input(shape = input_shape)
+        input_img = Input(shape = input_shape)
         # DEFINE INPUT FROM PREVIOUS SUBNETS
-        self.previous_vec = []
+        self.full_input = [input_img]
         for dim in previous_dim:
-            self.previous_vec.extend([Input(shape=dim)])
+            self.full_input.extend([Input(shape=dim)])
 
         # DEFINE ENCODER
         self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)
@@ -291,8 +291,22 @@ class hierarchicalAE_sub(Model):
         self.concatenate = Concatenate()
 
         # DEFINE DECODER
-        new_latent_dim = np.sum(previous_dim) + latent_dim
-        self.decoder = Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=new_latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth)
+        self.new_latent_dim = np.sum(previous_dim,dtype=np.dtype(int)) + latent_dim
+        self.decoder = Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=self.new_latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth)
+
+        self.out = self.call(self.full_input)
+    
+    def call(self,inputs,training=None):
+        x = self.encoder(inputs[0])
+        new_z = inputs[1::].extend([x])
+        if len(inputs) != 1:
+            x = self.concatenate(inputs[1:].extend([x]))
+        x = self.decoder(x)
+        return x
+
+    def summary(self):
+        mdl = Model(self.full_input,self.out)
+        return mdl.summary()
     
 
 class ResizeImages(Layer):
