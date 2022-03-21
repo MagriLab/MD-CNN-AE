@@ -298,9 +298,10 @@ class hierarchicalAE_sub(Model):
     
     def call(self,inputs,training=None):
         x = self.encoder(inputs[0])
-        new_z = inputs[1::].extend([x])
+        new_z = inputs[1::]
+        new_z.extend([x])
         if len(inputs) != 1:
-            x = self.concatenate(inputs[1:].extend([x]))
+            x = self.concatenate(new_z)
         x = self.decoder(x)
         return x
 
