@@ -294,22 +294,22 @@ class hierarchicalAE_sub(Model):
             self.full_input.extend([Input(shape=dim)])
 
         # DEFINE ENCODER
-        self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)
+        self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,name='encoder')
         layer_size = self.encoder.get_layer_shape()
 
         # COMBINE SUBNETS
-        self.concatenate = Concatenate()
+        self.concatenate = Concatenate(name='concatenate')
 
         # DEFINE DECODER
         self.new_latent_dim = np.sum(previous_dim,dtype=np.dtype(int)) + latent_dim
-        self.decoder = Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=self.new_latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth)
+        self.decoder = Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=self.new_latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name='decoder')
 
         self.out = self.call(self.full_input)
     
     def call(self,inputs,training=None):
         x = self.encoder(inputs[0])
         if len(inputs) != 1:
-            new_z = inputs[1::]
+            new_z = list(inputs[1::])
             new_z.extend([x])
             x = self.concatenate(new_z)
         x = self.decoder(x)
@@ -324,6 +324,14 @@ class hierarchicalAE_sub(Model):
     
     def get_decoder(self):
         return self.decoder
+    
+    # def get_full_latent_vector(self,input):
+    #     # if not hasattr(self, 'intermediate_model'):
+    #     #     # test if the intermediate model exist to avoid repeating building models
+    #     #     self.intermediate_model = Model(self.full_input,)
+    #     # else:
+    #     #     print(self.a)
+    #     get_vec = K.function()
     
 
 class ResizeImages(Layer):

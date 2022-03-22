@@ -13,8 +13,8 @@ from matplotlib import pyplot as plt
 
 # data
 data_file = './PIV4_downsampled_by8.h5'
-Ntrain = 100 # snapshots for training
-Nval = 6 # sanpshots for validation
+Ntrain = 10 # snapshots for training
+Nval = 600 # sanpshots for validation
 Ntest = 600
 
 # Boolean 
@@ -90,37 +90,72 @@ u_val = np.reshape(u_val,(1,Nval,Ny,Nz,Nu))
 u_test = np.reshape(u_test,(1,Ntest,Ny,Nz,Nu))
 Nx = [Ny, Nz]
 
+u = u_train[0,:,:,:,:]
+
 #======================================= CREATE AUTOENCODER =======================================
-ae_subnet1 = hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=[],features_layers=features_layers,latent_dim=1)
+ae_subnet1 = hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=[],features_layers=features_layers,latent_dim=2)
 print(ae_subnet1.summary())
-# ae_subnet2 = hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=[1],features_layers=features_layers,latent_dim=1)
-# print(ae_subnet2.summary())
+ae_subnet2 = hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=[2],features_layers=features_layers,latent_dim=1)
+print(ae_subnet2.summary())
 
 ae_subnet1.compile(optimizer=Adam(learning_rate=0.001),loss='mse') 
-hist1 = ae_subnet1.fit([u_train[0,:,:,:,:]], u_train[0,:,:,:,:],
-                    epochs=10,
-                    batch_size=batch_size,
-                    shuffle=True,
-                    validation_data=(u_val[0,:,:,:,:], u_val[0,:,:,:,:]))
-plt.figure()
-plt.plot(hist1.history['loss'])
-plt.plot(hist1.history['val_loss'])
+hist1 = ae_subnet1.fit([u], u,
+                    epochs=2,
+                    batch_size=batch_size,validation_data=([u_val[0,:,:,:,:]], u_val[0,:,:,:,:])
+                    )#
+# plt.figure()
+# plt.plot(hist1.history['loss'])
+# plt.plot(hist1.history['val_loss'])
 subnet1_encoder = ae_subnet1.get_encoder()
 z1 = subnet1_encoder.predict(u_train[0,:,:,:,:])
+z_val1 = subnet1_encoder.predict(u_val[0,:,:,:,:])
 
-# ae_subnet2.compile(optimizer=Adam(learning_rate=0.001),loss='mse') 
-# hist2 = ae_subnet2.fit(u_train[0,:,:,:,:], u_train[0,:,:,:,:],
-#                     epochs=10,
-#                     batch_size=batch_size,
-#                     shuffle=True,
-#                     validation_data=(u_val[0,:,:,:,:], u_val[0,:,:,:,:]))
+ae_subnet2.compile(optimizer=Adam(learning_rate=0.001),loss='mse') 
+hist2 = ae_subnet2.fit([u,z1], u,
+                    epochs=2,
+                    batch_size=batch_size,
+                    shuffle=True,
+                    validation_data=([u_val[0,:,:,:,:],z_val1], u_val[0,:,:,:,:]))#
 # plt.figure()
 # plt.plot(hist2.history['loss'])
 # plt.plot(hist2.history['val_loss'])
-# subnet2_encoder = ae_subnet2.get_encoder()
-# z2 = subnet2_encoder.predict(u_train[0,:,:,:,:])
+subnet2_encoder = ae_subnet2.get_encoder()
+z2 = subnet2_encoder.predict(u_train[0,:,:,:,:])
 
-# plt.show()
 
-# print(z1)
-# print(z2)
+print("###############################################")
+ae_subnet3 = hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=[2,1],features_layers=features_layers,latent_dim=1)
+print(ae_subnet3.summary())
+
+ae_subnet3.compile(optimizer=Adam(learning_rate=0.001),loss='mse') 
+hist3 = ae_subnet3.fit([u,z1,z2], u,
+                    epochs=2,
+                    batch_size=batch_size,
+                    shuffle=True)
+subnet3_encoder = ae_subnet3.get_encoder()
+z3 = subnet3_encoder.predict(u_train[0,:,:,:,:])
+
+print("################")
+for layer in ae_subnet1.layers:
+    print(layer)
+
+print("################")
+for layer in ae_subnet2.layers:
+    print(layer)
+
+print("################")
+for layer in ae_subnet3.layers:
+    print(layer)
+
+print("################")
+print(ae_subnet2.layers[1].output_shape,ae_subnet3.layers[1].output_shape)
+
+print(ae_subnet2.layers[0].input_shape,ae_subnet2.layers[1].input_shape)
+
+get_vec = K.function([input,ae_subnet2.layers[1].input],
+                    [ae_subnet2.layers[1].output])
+
+a = get_vec([z1,z2])
+print(z1.flatten())
+print(z2.flatten())
+print(a)
