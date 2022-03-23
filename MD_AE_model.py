@@ -325,13 +325,13 @@ class hierarchicalAE_sub(Model):
     def get_decoder(self):
         return self.decoder
     
-    # def get_full_latent_vector(self,input):
-    #     # if not hasattr(self, 'intermediate_model'):
-    #     #     # test if the intermediate model exist to avoid repeating building models
-    #     #     self.intermediate_model = Model(self.full_input,)
-    #     # else:
-    #     #     print(self.a)
-    #     get_vec = K.function()
+    def get_full_latent_vector(self,input):
+        # if not hasattr(self, 'intermediate_model'):
+        #     # test if the intermediate model exist to avoid repeating building models
+        #     self.intermediate_model = Model(self.full_input,)
+        # else:
+        #     print(self.a)
+        get_vec = K.function()
     
 
 class ResizeImages(Layer):
