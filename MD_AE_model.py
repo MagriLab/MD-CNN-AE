@@ -266,7 +266,7 @@ class MD_Autoencoder(Model):
         return decoders
 
 
-class hierarchicalAE_sub(Model):
+class hierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form subnet 1), latent_vector_2,...]
     # Ref: K. Fukami, T. Nakamura, and K. Fukagata, ``Convolutional neural network based hierarchical autoencoder for nonlinear mode decomposition of fluid field data," Physics of Fluids, 32, 095110, (2020)
     def __init__(self,Nx,Nu,previous_dim=[],features_layers=[1],latent_dim=1,
         filter_window=(3,3),act_fct='tanh',batch_norm=False,
@@ -326,13 +326,21 @@ class hierarchicalAE_sub(Model):
         return self.decoder
     
     def get_full_latent_vector(self,input):
-        # if not hasattr(self, 'intermediate_model'):
-        #     # test if the intermediate model exist to avoid repeating building models
-        #     self.intermediate_model = Model(self.full_input,)
-        # else:
-        #     print(self.a)
-        get_vec = K.function()
+        # input: same as training [u,latent_vec1,latent_vec2,...]
+        z_new = self.encoder.predict(input[0])
+        z_full = input[1::]
+        z_full.append(z_new)
+        z_full = np.concatenate(z_full,axis=1)
+        return z_full
     
+    # def test(self,inputs): # same as get_full_latent_vector
+    #     x = self.encoder(self.full_input[0])
+    #     new_z = list(self.full_input[1::])
+    #     new_z.extend([x])
+    #     x = self.concatenate(new_z)
+    #     mdl = Model(self.full_input,x)
+    #     full_vec = mdl.predict(inputs)
+    #     return full_vec
 
 class ResizeImages(Layer):
     """Resize Images to a specified size
