@@ -136,26 +136,9 @@ subnet3_encoder = ae_subnet3.get_encoder()
 z3 = subnet3_encoder.predict(u_train[0,:,:,:,:])
 
 print("################")
-for layer in ae_subnet1.layers:
-    print(layer)
-
-print("################")
-for layer in ae_subnet2.layers:
-    print(layer)
-
-print("################")
-for layer in ae_subnet3.layers:
-    print(layer)
-
-print("################")
-print(ae_subnet2.layers[1].output_shape,ae_subnet3.layers[1].output_shape)
-
-print(ae_subnet2.layers[0].input_shape,ae_subnet2.layers[1].input_shape)
-
-get_vec = K.function([input,ae_subnet2.layers[1].input],
-                    [ae_subnet2.layers[1].output])
-
-a = get_vec([z1,z2])
-print(z1.flatten())
-print(z2.flatten())
-print(a)
+full_vec = ae_subnet3.get_full_latent_vector([u,z1,z2])
+# print(full_vec.T)
+print(" ")
+full_vec_2 = ae_subnet3.test([u,z1,z2])
+# print(full_vec_2.T)
+print(np.array_equal(full_vec,full_vec_2))
