@@ -1,15 +1,16 @@
 from os import name
+import sys
 import tensorflow as tf
+from tensorflow.keras import backend as K
 tf.keras.backend.set_floatx('float32')
 
 from tensorflow.keras import Input
-from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, UpSampling2D, concatenate, BatchNormalization, Conv2DTranspose, Flatten, PReLU, Reshape, Dropout, AveragePooling2D, Add, Lambda, Layer, TimeDistributed, LSTM
+from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, UpSampling2D, Concatenate, BatchNormalization, Conv2DTranspose, Flatten, PReLU, Reshape, Dropout, AveragePooling2D, Add, Lambda, Layer
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.initializers import Constant
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import Model
 
-from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 
 import numpy as np
 
@@ -190,7 +191,7 @@ class MD_Autoencoder(Model):
         self.resize_meth = resize_meth
 
         if latent_dim == 1:
-            print("Latent dimension is 1, use standard autoencoder instead")
+            sys.exit("Latent dimension is 1, use standard autoencoder instead")
 
         input_shape = (Nx[0],Nx[1],Nu)
         self.input_img = Input(shape = input_shape)
@@ -253,8 +254,93 @@ class MD_Autoencoder(Model):
             name = prefix + '_' + str(i)
             names.append(name)
         return names
+    
+    def get_encoder(self):
+        return self.encoder
+    
+    # returns a list with all decoders
+    def get_decoders(self):
+        decoders = []
+        for name in self.name_decoder:
+            decoders.append(self.get_layer(name))
+        return decoders
 
 
+class hierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form subnet 1), latent_vector_2,...]
+    # Ref: K. Fukami, T. Nakamura, and K. Fukagata, ``Convolutional neural network based hierarchical autoencoder for nonlinear mode decomposition of fluid field data," Physics of Fluids, 32, 095110, (2020)
+    def __init__(self,Nx,Nu,previous_dim=[],features_layers=[1],latent_dim=1,
+        filter_window=(3,3),act_fct='tanh',batch_norm=False,
+        drop_rate=0.0, lmb=0.0,resize_meth='bilinear', *args, **kwargs):
+        super(hierarchicalAE_sub,self).__init__(*args,**kwargs)
+
+        self.Nx = Nx
+        self.Nu = Nu
+        self.previous_latent_dim = previous_dim # [latent_dim_subnet1, latent_dim_subnet2, latent_dim_subnet3 ...]
+        self.features_layer = features_layers
+        self.latent_dim = latent_dim # the size of the latent space for each mode
+        self.filter_window = filter_window
+        self.act_fct = act_fct
+        self.batch_norm = batch_norm
+        self.drop_rate = drop_rate
+        self.lmb = lmb
+        self.resize_meth = resize_meth
+
+        # DEFINE INPUT
+        input_shape = (Nx[0],Nx[1],Nu)
+        input_img = Input(shape = input_shape)
+        # DEFINE INPUT FROM PREVIOUS SUBNETS
+        self.full_input = [input_img]
+        for dim in previous_dim:
+            self.full_input.extend([Input(shape=dim)])
+
+        # DEFINE ENCODER
+        self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,name='encoder')
+        layer_size = self.encoder.get_layer_shape()
+
+        # COMBINE SUBNETS
+        self.concatenate = Concatenate(name='concatenate')
+
+        # DEFINE DECODER
+        self.new_latent_dim = np.sum(previous_dim,dtype=np.dtype(int)) + latent_dim
+        self.decoder = Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=self.new_latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name='decoder')
+
+        self.out = self.call(self.full_input)
+    
+    def call(self,inputs,training=None):
+        x = self.encoder(inputs[0])
+        if len(inputs) != 1:
+            new_z = list(inputs[1::])
+            new_z.extend([x])
+            x = self.concatenate(new_z)
+        x = self.decoder(x)
+        return x
+
+    def summary(self):
+        mdl = Model(self.full_input,self.out)
+        return mdl.summary()
+    
+    def get_encoder(self):
+        return self.encoder
+    
+    def get_decoder(self):
+        return self.decoder
+    
+    def get_full_latent_vector(self,input):
+        # input: same as training [u,latent_vec1,latent_vec2,...]
+        z_new = self.encoder.predict(input[0])
+        z_full = input[1::]
+        z_full.append(z_new)
+        z_full = np.concatenate(z_full,axis=1)
+        return z_full
+    
+    # def test(self,inputs): # same as get_full_latent_vector
+    #     x = self.encoder(self.full_input[0])
+    #     new_z = list(self.full_input[1::])
+    #     new_z.extend([x])
+    #     x = self.concatenate(new_z)
+    #     mdl = Model(self.full_input,x)
+    #     full_vec = mdl.predict(inputs)
+    #     return full_vec
 
 class ResizeImages(Layer):
     """Resize Images to a specified size
