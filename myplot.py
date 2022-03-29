@@ -39,3 +39,9 @@ def plot_ae_modes(modes,modes_to_plot,savefig=False,path=None):
             plt.savefig(figpath)
         else:
             plt.show(block=False)
+
+
+# plot autoencoder results
+# def plot_ae_results(u,y,u_avg=None,error='mae'):
+#     # u: input to the autoencoder, shape [time,Nx,Ny,u]
+#     # y: output from ae.predict(u)
