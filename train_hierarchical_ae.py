@@ -134,10 +134,15 @@ for i in range(len(learning_rate_list)):
     subnet1.load_weights(tempfn)
     hist_train.extend(hist0.history['loss'])
     hist_val.extend(hist0.history['val_loss'])
-hist_train_full.append(hist_train)
-hist_val_full.append(hist_val)
+hist_train_full.extend(hist_train)
+hist_val_full.extend(hist_val)
 z_train_1 = subnet1.encoder.predict(u_train[0,:,:,:,:])
 z_val_1 = subnet1.encoder.predict(u_val[0,:,:,:,:])
+
+
+hist_train_full.extend([-1]) # separate each subnet
+hist_val_full.extend([-1])
+
 
 # subnet2
 hist_train = []
@@ -160,8 +165,8 @@ for i in range(len(learning_rate_list)):
     subnet2.load_weights(tempfn)
     hist_train.extend(hist0.history['loss'])
     hist_val.extend(hist0.history['val_loss'])
-hist_train_full.append(hist_train)
-hist_val_full.append(hist_val)
+hist_train_full.extend(hist_train)
+hist_val_full.extend(hist_val)
 z_train_2 = subnet2.encoder.predict(u_train[0,:,:,:,:])
 z_val_2 = subnet2.encoder.predict(u_val[0,:,:,:,:])
 print('Finished training')
@@ -171,7 +176,7 @@ print('Saving results')
 ts = time.time()
 st = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d__%H_%M_%S')
 # Create a new folder for the results
-folder = 'C:/Users/tracy/OneDrive - Imperial College London/PhD/Code_md-ae/Hierarchical_' + str(no_of_modes) +'_' + str(latent_dim) + '__' + st + '/'
+folder = '/home/ym917/OneDrive/PhD/Code_md-ae/Hierarchical_' + str(no_of_modes) +'_' + str(latent_dim) + '__' + st + '/'
 os.mkdir(folder)
 
 # summary of structure
@@ -202,7 +207,7 @@ hf.create_dataset('LATENT_STATE',data=LATENT_STATE)
 hf.create_dataset('SHUFFLE',data=SHUFFLE)
 hf.create_dataset('REMOVE_MEAN',data=REMOVE_MEAN)
 if SHUFFLE:
-    hf.create_dataset('idx_unshuffle',data=idx_unshuffle) # fpr un-shuffling u_all[0:Ntrain+Nval,:,:,:]
+    hf.create_dataset('idx_unshuffle',data=idx_unshuffle) # for un-shuffling u_all[0:Ntrain+Nval,:,:,:]
 hf.close()
 
 # save models
