@@ -5,6 +5,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras import backend as K
 
 from MD_AE_model import *
+import myplot
 
 import h5py
 import numpy as np
@@ -25,7 +26,6 @@ Nval = 632 # sanpshots for validation
 Ntest = 600
 
 # Boolean 
-LATENT_STATE = True # save latent state
 SHUFFLE = True # shuffle before splitting into sets, test set is extracted before shuffling
 REMOVE_MEAN = True # train on fluctuating velocity
 
@@ -46,6 +46,7 @@ nb_epoch = 500
 batch_size = 100
 learning_rate = 0.001
 learning_rate_list = [0.001,0.0005,0.0001]
+save_network = [0,1] # the subnets whose wights will be saved to a .h5 file. Use 'all' if saving all network (be careful if there are many subnets.)
 
 #================================= IMPORT DATA ==========================================================
 Nz = 24 # grid size
@@ -102,74 +103,66 @@ u_test = np.reshape(u_test,(1,Ntest,Ny,Nz,Nu))
 Nx = [Ny, Nz]
 
 #======================================= CREATE AUTOENCODER =======================================
-subnet1 = hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=[],features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,drop_rate=drop_rate,lmb=lmb)
-subnet2 = hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=[1],features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,drop_rate=drop_rate,lmb=lmb)
+previous_dim = []
+subnets = []
+for _ in range(no_of_modes):
+    subnets.extend([hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=previous_dim,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,drop_rate=drop_rate,lmb=lmb)])
+    previous_dim.extend([latent_dim])
 
 #================================================ TRAINING ==========================================
-subnet1.compile(optimizer=Adam(learning_rate=learning_rate),loss='mse') # or use tf.keras.losses.MeanAbsoluteError()
-subnet2.compile(optimizer=Adam(learning_rate=learning_rate),loss='mse') 
+for i in range(no_of_modes):
+    subnets[i].compile(optimizer=Adam(learning_rate=learning_rate),loss='mse') # or use tf.keras.losses.MeanAbsoluteError()
 pat = 100 # patience for EarlyStopping
 
 hist_train_full = []
 hist_val_full = []
 
 # subnet1
-hist_train = []
-hist_val = []
 tempfn = './temp_hierarchical_autoencoder.h5'
 model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
 early_cb=EarlyStopping(monitor='val_loss', patience=pat,verbose=1)
 cb = [model_cb, early_cb]
 
-print('Training subnet1...')
-for i in range(len(learning_rate_list)):
-    learning_rate = learning_rate_list[i]
-    K.set_value(subnet1.optimizer.lr,learning_rate)
-    hist0 = subnet1.fit([u_train[0,:,:,:,:]], u_train[0,:,:,:,:],
-                    epochs=nb_epoch,
-                    batch_size=batch_size,
-                    shuffle=True,
-                    validation_data=([u_val[0,:,:,:,:]], u_val[0,:,:,:,:]),
-                    callbacks=cb)  
-    subnet1.load_weights(tempfn)
-    hist_train.extend(hist0.history['loss'])
-    hist_val.extend(hist0.history['val_loss'])
-hist_train_full.extend(hist_train)
-hist_val_full.extend(hist_val)
-z_train_1 = subnet1.encoder.predict(u_train[0,:,:,:,:])
-z_val_1 = subnet1.encoder.predict(u_val[0,:,:,:,:])
+input_train = [u_train[0,:,:,:,:]]
+input_val = [u_val[0,:,:,:,:]]
 
+print('Starting training')
+# train each subnet in a loop
+for j in range(no_of_modes):
+    print('training subnet ', str(j+1))
+    hist_train = []
+    hist_val = []
+    for i in range(len(learning_rate_list)):
+        learning_rate = learning_rate_list[i]
+        K.set_value(subnets[j].optimizer.lr,learning_rate)
+        hist0 = subnets[j].fit(input_train, u_train[0,:,:,:,:],
+                        epochs=nb_epoch,
+                        batch_size=batch_size,
+                        shuffle=True,
+                        validation_data=(input_val, u_val[0,:,:,:,:]),
+                        callbacks=cb)  
+        subnets[j].load_weights(tempfn)
+        hist_train.extend(hist0.history['loss'])
+        hist_val.extend(hist0.history['val_loss'])
+    hist_train_full.extend(hist_train)
+    hist_val_full.extend(hist_val)
+    hist_train_full.extend([-1]) # separate each subnet. 
+    hist_val_full.extend([-1]) #use np.where(hist_train_full==-1) to return the idx 
 
-hist_train_full.extend([-1]) # separate each subnet
-hist_val_full.extend([-1])
-
-
-# subnet2
-hist_train = []
-hist_val = []
-tempfn = './temp_hierarchical_autoencoder.h5'
-model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
-early_cb=EarlyStopping(monitor='val_loss', patience=pat,verbose=1)
-cb = [model_cb, early_cb]
-
-print('Training subnet2...')
-for i in range(len(learning_rate_list)):
-    learning_rate = learning_rate_list[i]
-    K.set_value(subnet2.optimizer.lr,learning_rate)
-    hist0 = subnet2.fit([u_train[0,:,:,:,:],z_train_1], u_train[0,:,:,:,:],
-                    epochs=nb_epoch,
-                    batch_size=batch_size,
-                    shuffle=True,
-                    validation_data=([u_val[0,:,:,:,:],z_val_1], u_val[0,:,:,:,:]),
-                    callbacks=cb)  
-    subnet2.load_weights(tempfn)
-    hist_train.extend(hist0.history['loss'])
-    hist_val.extend(hist0.history['val_loss'])
-hist_train_full.extend(hist_train)
-hist_val_full.extend(hist_val)
-z_train_2 = subnet2.encoder.predict(u_train[0,:,:,:,:])
-z_val_2 = subnet2.encoder.predict(u_val[0,:,:,:,:])
+    # get latnet variable for the next subnet
+    z_train = subnets[j].encoder.predict(u_train[0,:,:,:,:])
+    z_val = subnets[j].encoder.predict(u_val[0,:,:,:,:])
+    input_train.append(z_train)
+    input_val.append(z_val)
 print('Finished training')
+
+# ======================================== Testing =================================#
+y_test = []
+input_test = [u_test[0,:,:,:,:]]
+
+for i in range(no_of_modes):
+    y_test.append(subnets[i].predict(input_test))
+    input_test.append(subnets[i].encoder.predict(u_test[0,:,:,:,:]))
 
 # ============================================= Saving =============================#
 print('Saving results')
@@ -183,10 +176,10 @@ os.mkdir(folder)
 filename = folder + 'Autoencoder_summary.txt'
 with open(filename,'w') as f:
     with redirect_stdout(f):
-        print('Subnet1')
-        print(subnet1.summary())
-        print('\nSubnet2')
-        print(subnet2.summary())
+        for i in range(no_of_modes):
+            print('Subnet ',str(i+1))
+            print(subnets[i].summary())
+            print(' ')
 
 # model parameters
 filename = folder + 'Model_param.h5'
@@ -203,7 +196,6 @@ hf.create_dataset('act_fct',data=np.string_(act_fct),dtype="S10")
 hf.create_dataset('batch_norm',data=bool(batch_norm))
 hf.create_dataset('drop_rate',data=drop_rate)
 hf.create_dataset('lmb',data=lmb)
-hf.create_dataset('LATENT_STATE',data=LATENT_STATE)
 hf.create_dataset('SHUFFLE',data=SHUFFLE)
 hf.create_dataset('REMOVE_MEAN',data=REMOVE_MEAN)
 if SHUFFLE:
@@ -211,10 +203,14 @@ if SHUFFLE:
 hf.close()
 
 # save models
-filename = folder + 'subnet1'
-subnet1.save(filename)
-filename = folder + 'subnet2'
-subnet2.save(filename)
+if save_network == 'all':
+    for network in range(no_of_modes):
+        filename = folder + 'subnet' + str(network) + '.h5'
+        subnets[network].save_weights(filename)
+else:
+    for network in save_network:
+        filename = folder + 'subnet' + str(network) + '.h5'
+        subnets[network].save_weights(filename)
 
 # save results
 filename = folder + 'results.h5'
@@ -225,14 +221,10 @@ hf.create_dataset('hist_val',data=hist_val_full)
 hf.create_dataset('u_train',data=u_train[0,:,:,:,:])
 hf.create_dataset('u_val',data=u_val[0,:,:,:,:])
 hf.create_dataset('u_test',data=u_test[0,:,:,:,:])
-# hf.create_dataset('y_test',data=y_test)
-# hf.create_dataset('y_train',data=y_train)
+hf.create_dataset('latent_train',data=input_train[1:])# latent space [z1,z2,...]
+hf.create_dataset('latent_val',data=input_val[1:])
+hf.create_dataset('latent_test',data=input_test[1:])
+hf.create_dataset('y_test',data=y_test) # results from [subnet1, subnet2 ...]
 if REMOVE_MEAN:
     hf.create_dataset('u_avg',data=u_mean_all)
-# if LATENT_STATE:
-#     hf.create_dataset('latent_dim',data=latent_dim)
-#     hf.create_dataset('latent_train',data=coded_train)
-#     hf.create_dataset('latent_test',data=coded_test)
-#     hf.create_dataset('modes_train',data=mode_train)
-#     hf.create_dataset('modes_test',data=mode_test) # has shape (modes,snapshots,Nx,Ny,Nu)
-# hf.close()
+hf.close()
