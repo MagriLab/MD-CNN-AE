@@ -164,6 +164,8 @@ for i in range(no_of_modes):
     y_test.append(subnets[i].predict(input_test))
     input_test.append(subnets[i].encoder.predict(u_test[0,:,:,:,:]))
 
+finish_time = datetime.datetime.now().strftime("%H:%M")
+
 # ============================================= Saving =============================#
 print('Saving results')
 ts = time.time()
@@ -205,11 +207,11 @@ hf.close()
 # save models
 if save_network == 'all':
     for network in range(no_of_modes):
-        filename = folder + 'subnet' + str(network) + '.h5'
+        filename = folder + 'subnet' + str(network+1) + '.h5'
         subnets[network].save_weights(filename)
 else:
     for network in save_network:
-        filename = folder + 'subnet' + str(network) + '.h5'
+        filename = folder + 'subnet' + str(network+1) + '.h5'
         subnets[network].save_weights(filename)
 
 # save results
@@ -228,3 +230,20 @@ hf.create_dataset('y_test',data=y_test) # results from [subnet1, subnet2 ...]
 if REMOVE_MEAN:
     hf.create_dataset('u_avg',data=u_mean_all)
 hf.close()
+
+# summary of test
+filename = folder + 'Autoencoder_summary.txt'
+with open(filename,'w') as f:
+    with redirect_stdout(f):
+        print('Shuffle: ', SHUFFLE)
+        print('Remove_mean: ', REMOVE_MEAN)
+        print('Latent dimension of each subnet: ', latent_dim)
+        print('Number of subnets: ', no_of_modes)
+        print('Learning rate: ', learning_rate_list)
+        print('Activation: ', act_fct)
+        print('Dropout rate', drop_rate)
+        print('Training + testing time: ', start_time, finish_time)
+
+print('Time taken for training and testing')
+print('Started at ', start_time)
+print('Finished at ', finish_time)

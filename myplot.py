@@ -42,6 +42,65 @@ def plot_ae_modes(modes,modes_to_plot,savefig=False,path=None):
 
 
 # plot autoencoder results
-# def plot_ae_results(u,y,u_avg=None,error='mae'):
-#     # u: input to the autoencoder, shape [time,Nx,Ny,u]
-#     # y: output from ae.predict(u)
+def plot_ae_results(u,y,u_avg=None,error='mae',savefig=False,path=None):
+    # u: input to the autoencoder, shape [time,Ny,Nz,u]
+    # y: output from ae.predict(u)
+    # u_avg: the time-averaged component if the network was trained on fluctuating velocity
+    # error: the error function to plot. 'mse' or 'mae'
+    if u.ndim != 4:
+        sys.exit("Input shape must be [nt,ny,nz,nu].") 
+    
+    if u_avg is not None: #always plot the full flow field
+        u_mean = u + u_avg
+        y_mean = y + u_avg
+        y_mean = np.mean(y_mean,0)
+        u_mean = np.mean(u_mean,0)
+    else:
+        y_mean = np.mean(y,0)
+        u_mean = np.mean(u,0)
+    
+    if error == 'mae':
+        e = np.abs(y-u)
+        e_mean = np.mean(e,0)
+    elif error == 'mse':
+        e = (y-u)**2
+        e_mean = np.mean(e,0)
+    else:
+        sys.exit('Please choose from mse or mae, or define your own error function.')
+
+    # set colorbar properties
+    umin = min(np.amin(u_mean[:,:,0]),np.amin(y_mean[:,:,0]))
+    umax = max(np.amax(u_mean[:,:,0]),np.amax(y_mean[:,:,0]))
+
+    vmin = min(np.amin(u_mean[:,:,1]),np.amin(y_mean[:,:,1]))
+    vmax = max(np.amax(u_mean[:,:,1]),np.amax(y_mean[:,:,1]))
+
+    plt.figure()
+
+    ax1 = plt.subplot(2,3,1,title="True",xticks=[],yticks=[],ylabel='v')
+    ax1 = plt.imshow(u_mean[:,:,0],'jet',vmin=umin,vmax=umax)
+    plt.colorbar()
+
+    ax2 = plt.subplot(2,3,2,title="Predicted",xticks=[],yticks=[])
+    ax2 = plt.imshow(y_mean[:,:,0],'jet',vmin=umin,vmax=umax)
+    plt.colorbar()
+
+    ax3 = plt.subplot(2,3,3,title="Absolute error",xticks=[],yticks=[]) # u error
+    ax3 = plt.imshow(e_mean[:,:,0],'jet')
+    plt.colorbar()
+
+    ax4 = plt.subplot(2,3,4,xticks=[],yticks=[],ylabel='w')
+    ax4 = plt.imshow(u_mean[:,:,1],'jet',vmin=vmin,vmax=vmax)
+    plt.colorbar()
+
+    ax5 = plt.subplot(2,3,5,xticks=[],yticks=[])
+    ax5 = plt.imshow(y_mean[:,:,1],'jet',vmin=vmin,vmax=vmax)
+    plt.colorbar()
+
+    ax6 = plt.subplot(2,3,6,xticks=[],yticks=[]) 
+    ax6 = plt.imshow(e_mean[:,:,1],'jet')
+    plt.colorbar()
+    if savefig:
+        plt.savefig(path)
+    else:
+        plt.show()
