@@ -36,7 +36,7 @@ features_layers = [32, 64, 128]
 latent_dim = 1
 no_of_modes = 2
 batch_size = Ntrain
-act_fct = 'tanh'
+act_fct = 'linear'
 resize_meth = 'bilinear'
 filter_window= (3,3)
 batch_norm = False
@@ -232,7 +232,7 @@ if REMOVE_MEAN:
 hf.close()
 
 # summary of test
-filename = folder + 'Autoencoder_summary.txt'
+filename = folder + 'test_summary.txt'
 with open(filename,'w') as f:
     with redirect_stdout(f):
         print('Shuffle: ', SHUFFLE)

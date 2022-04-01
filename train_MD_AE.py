@@ -34,13 +34,13 @@ Ntest = 600
 # Boolean 
 LATENT_STATE = True # save latent state
 SHUFFLE = True # shuffle before splitting into sets, test set is extracted before shuffling
-REMOVE_MEAN = False # train on fluctuating velocity
+REMOVE_MEAN = True # train on fluctuating velocity
 
 ## ae configuration
 lmb = 0.0 #1e-05 #regulariser
 drop_rate = 0.2
 features_layers = [32, 64, 128]
-latent_dim = 10
+latent_dim = 2
 batch_size = Ntrain
 act_fct = 'tanh'
 resize_meth = 'bilinear'
@@ -192,6 +192,7 @@ with open(filename,'w') as f:
         print("Remove mean ",REMOVE_MEAN)
         print("Learning rate ",learning_rate_list)
         print("Drop out ",drop_rate)
+        print('Activation function',act_fct)
 
 # summary of structure
 filename = folder + 'Autoencoder_summary.txt'
