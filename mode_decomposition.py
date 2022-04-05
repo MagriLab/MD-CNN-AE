@@ -33,7 +33,9 @@ class DMD:
 
         # prepare data
         nx, nt, self.grid_shape, Q, Qprime = self.prepare_data(X,Xprime)
+        print('Calculating DMD...')
         self.modes, self.lam, self.b = self.dmd(Q,Qprime,self.r)
+        print('DMD done.')
 
         if keep_shape:
             self.restore_shape()

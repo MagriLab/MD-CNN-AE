@@ -36,7 +36,7 @@ features_layers = [32, 64, 128]
 latent_dim = 1
 no_of_modes = 2
 batch_size = Ntrain
-act_fct = 'linear'
+act_fct = 'tanh'
 resize_meth = 'bilinear'
 filter_window= (3,3)
 batch_norm = False
@@ -117,11 +117,11 @@ pat = 100 # patience for EarlyStopping
 hist_train_full = []
 hist_val_full = []
 
-# subnet1
-tempfn = './temp_hierarchical_autoencoder.h5'
-model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
-early_cb=EarlyStopping(monitor='val_loss', patience=pat,verbose=1)
-cb = [model_cb, early_cb]
+
+# tempfn = './temp_hierarchical_autoencoder.h5'
+# model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
+# early_cb=EarlyStopping(monitor='val_loss', patience=pat,verbose=1)
+# cb = [model_cb, early_cb]
 
 input_train = [u_train[0,:,:,:,:]]
 input_val = [u_val[0,:,:,:,:]]
@@ -129,6 +129,12 @@ input_val = [u_val[0,:,:,:,:]]
 print('Starting training')
 # train each subnet in a loop
 for j in range(no_of_modes):
+    # if os.path.exists(tempfn):
+    #     os.remove(tempfn)
+    tempfn = './temp_hierarchical_autoencoder' + str(j) + '.h5'
+    model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
+    early_cb=EarlyStopping(monitor='val_loss', patience=pat,verbose=1)
+    cb = [model_cb, early_cb]
     print('training subnet ', str(j+1))
     hist_train = []
     hist_val = []
@@ -154,6 +160,7 @@ for j in range(no_of_modes):
     z_val = subnets[j].encoder.predict(u_val[0,:,:,:,:])
     input_train.append(z_train)
     input_val.append(z_val)
+    os.remove(tempfn)
 print('Finished training')
 
 # ======================================== Testing =================================#
@@ -242,7 +249,7 @@ with open(filename,'w') as f:
         print('Learning rate: ', learning_rate_list)
         print('Activation: ', act_fct)
         print('Dropout rate', drop_rate)
-        print('Training + testing time: ', start_time, finish_time)
+        print('Start and finish time: ', start_time, finish_time)
 
 print('Time taken for training and testing')
 print('Started at ', start_time)
