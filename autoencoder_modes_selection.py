@@ -96,7 +96,8 @@ def normalise(a,axis,data_range=None):
         # make sure the next step do not produce nan
         # in norm_a the column/row where a is constant will be all 0
         idx_const = (width == 0.).nonzero()
-        print('Peak-to-peak value ', idx_const, ' is 0., this variable is constant')
+        if not idx_const:
+            print('Peak-to-peak value ', idx_const, ' is 0., this variable is constant')
         width[idx_const] = width[idx_const] + 0.0001
         norm_a = (a - minimum)/width
     elif len(data_range) != 0:
