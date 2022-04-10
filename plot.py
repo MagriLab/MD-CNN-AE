@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import mode_decomposition as md
 
 time = 0 # snapshot to plot
-folder = '/home/ym917/OneDrive/PhD/Code_md-ae/MD_10__2022_02_19__14_04_07'
-important_ae_modes = [10,6,8,7] # [1byenergy,2byenergy,1by%,2by%]
+folder = 'C:/Users/tracy/OneDrive - Imperial College London/PhD/Code_md-ae/MD_10__2022_02_19__14_04_07/'
+important_ae_modes = [9,5,7,6] # start from 0 [1byenergy,2byenergy,1by%,2by%]
 
 ## Read parameters and results
 filename = folder + 'Model_param.h5'
@@ -62,19 +62,38 @@ for i in important_ae_modes:
 count_figure = 0
 
 count_figure += 1
-plt.figure('testing_latent_space')
+fig1 = plt.figure('testing_latent_space')
 for z in range(latent_dim):
-    label = 'autoencoder mode '+str(z+1)
+    label = str(z+1)
     plt.plot(latent_test[:,z],label = label)
 plt.xlim((0,latent_test.shape[0]))
 plt.xlabel('snapshot')
 plt.title('testing latent space')
-plt.legend()
+plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.0),
+          ncol=5)
 
-count_figure += 1
-plt.figure('ae_mode_with_POD_modes')
-fig,ax = plt.subplots(nrows=1,ncols=3)
-for i in important_ae_modes:
+
+# plot POD modes of autoencoder modes.
+# top: v, bottom: w
+for i in range(4): 
+    count_figure += 1
+    title = 'POD_modes_of_ae_mode' + str(important_ae_modes[i]+1)
+    fig,ax = plt.subplots(nrows=2,ncols=3)
+    fig.canvas.set_window_title(title)
+    for iphi in range(3): # plot v
+        pltV = POD_modes[i][:,iphi]
+        pltV = np.reshape(pltV,[2*Ny,Nz])
+        pltV = pltV[Ny:,:]
+        ax[0,iphi].imshow(pltV,'jet')
+        ax[0,iphi].set_xticks([])
+        ax[0,iphi].set_yticks([])
+    for iphi in range(3): # plot w
+        pltV = POD_modes[i][:,iphi]
+        pltV = np.reshape(pltV,[2*Ny,Nz])
+        pltV = pltV[0:Ny,:]
+        ax[1,iphi].imshow(pltV,'jet')
+        ax[1,iphi].set_xticks([])
+        ax[1,iphi].set_yticks([])
     
 
 

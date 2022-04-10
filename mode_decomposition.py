@@ -1,6 +1,4 @@
 # contains POD and DMD 
-from crypt import methods
-from re import S
 from time import time
 import numpy as np
 import sys
