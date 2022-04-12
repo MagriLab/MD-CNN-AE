@@ -132,8 +132,8 @@ POD_modes_data,lam_data = pod_data.get_modes()
 POD_mean_data = pod_data.Q_mean
 
 dmd_data = md.DMD(X[:,:,:-1],X[:,:,1:],r=50,keep_shape=True)
-Phi, DMD_lam_data, DMD_b_data = dmd.get_modes()
-DMD_modes_data = Phi.real
+Phi_data, DMD_lam_data, DMD_b_data = dmd.get_modes()
+DMD_modes_data = Phi_data.real
 DMD_lam_data = np.diag(DMD_lam_data)
 
 

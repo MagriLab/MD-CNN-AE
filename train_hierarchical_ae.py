@@ -34,9 +34,9 @@ lmb = 0.0 #1e-05 #regulariser
 drop_rate = 0.2
 features_layers = [32, 64, 128]
 latent_dim = 1
-no_of_modes = 2
+no_of_modes = 10
 batch_size = Ntrain
-act_fct = 'tanh'
+act_fct = 'linear'
 resize_meth = 'bilinear'
 filter_window= (3,3)
 batch_norm = False
@@ -46,7 +46,7 @@ nb_epoch = 500
 batch_size = 100
 learning_rate = 0.001
 learning_rate_list = [0.001,0.0005,0.0001]
-save_network = [0,1] # the subnets whose wights will be saved to a .h5 file. Use 'all' if saving all network (be careful if there are many subnets.)
+save_network = 'all' # the subnets (e.g. [0,1,3]) whose wights will be saved to a .h5 file. Use 'all' if saving all network (be careful if there are many subnets.)
 
 #================================= IMPORT DATA ==========================================================
 Nz = 24 # grid size
