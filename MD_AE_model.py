@@ -333,14 +333,6 @@ class hierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form su
         z_full = np.concatenate(z_full,axis=1)
         return z_full
     
-    # def test(self,inputs): # same as get_full_latent_vector
-    #     x = self.encoder(self.full_input[0])
-    #     new_z = list(self.full_input[1::])
-    #     new_z.extend([x])
-    #     x = self.concatenate(new_z)
-    #     mdl = Model(self.full_input,x)
-    #     full_vec = mdl.predict(inputs)
-    #     return full_vec
 
 class ResizeImages(Layer):
     """Resize Images to a specified size

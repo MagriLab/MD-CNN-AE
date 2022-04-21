@@ -5,7 +5,7 @@ import sys
 
 # Plot a figure for each autoencoder mode
 # left: time-averaged velocity v, right time-averaged velocity w
-def plot_ae_modes(modes,modes_to_plot,savefig=False,path=None):
+def plot_ae_modes(modes,modes_to_plot,savefig=False,path=None,snapshot='mean'):
     # Inputs:
     # modes: the autoencoder modes from training, has shape [latent_dim,nt,ny,nz,nu]
     # modes_to_plot: range or array, if plotting first 5 modes then range(5)
@@ -19,13 +19,20 @@ def plot_ae_modes(modes,modes_to_plot,savefig=False,path=None):
         vz = modes[WhichDecoder,:,:,:,1].astype('float64')
         vy = np.transpose(vy,[1,2,0])
         vz = np.transpose(vz,[1,2,0]) #(ny,nz,nt)
-        X = np.vstack((vz,vy)) # new shape [2*ny,nz,nt]
 
         fig,(ax1,ax2) = plt.subplots(nrows=1,ncols=2)
-        title = 'Autoencoder mode '+str(WhichDecoder+1)
-        fig.suptitle(title)
-        fig1 = ax1.imshow(np.mean(vy,-1),'jet')
-        fig2 = ax2.imshow(np.mean(vz,-1),'jet')
+        if snapshot == 'mean':
+            title = 'Autoencoder mode '+str(WhichDecoder+1)
+            fig.suptitle(title)
+            fig1 = ax1.imshow(np.mean(vy,-1),'jet')
+            fig2 = ax2.imshow(np.mean(vz,-1),'jet')
+        elif isinstance(snapshot,int):
+            title = 'Autoencoder mode '+str(WhichDecoder+1)
+            fig.suptitle(title)
+            fig1 = ax1.imshow(vy[:,:,snapshot],'jet')
+            fig2 = ax2.imshow(vz[:,:,snapshot],'jet')
+        else:
+            sys.exit("Argument 'snapshot' must be an integer. If left blank, the time-averaged autoencoder mode is plotted.")
         fig.colorbar(fig1,ax=ax1)
         fig.colorbar(fig2,ax=ax2)
         ax1.set_title('v')
