@@ -6,11 +6,11 @@ import sys
 # Plot a figure for each autoencoder mode
 # left: time-averaged velocity v, right time-averaged velocity w
 def plot_ae_modes(modes,modes_to_plot,savefig=False,path=None,snapshot='mean'):
-    # Inputs:
-    # modes: the autoencoder modes from training, has shape [latent_dim,nt,ny,nz,nu]
-    # modes_to_plot: range or array, if plotting first 5 modes then range(5)
-    # savefig: if True fgure is saved to the folder defined in path. Default False
-    # path: path to target folder
+    ''' Inputs:
+    modes: the autoencoder modes from training, has shape [latent_dim,nt,ny,nz,nu]
+    modes_to_plot: range or array, if plotting first 5 modes then range(5)
+    savefig: if True fgure is saved to the folder defined in path. Default False
+    path: path to target folder'''
     if modes.ndim != 5:
         sys.exit("Input shape must be [latent_dim,nt,ny,nz,nu].") 
     
@@ -50,10 +50,11 @@ def plot_ae_modes(modes,modes_to_plot,savefig=False,path=None,snapshot='mean'):
 
 # plot autoencoder results
 def plot_ae_results(u,y,u_avg=None,error='mae',savefig=False,path=None):
-    # u: input to the autoencoder, shape [time,Ny,Nz,u]
-    # y: output from ae.predict(u)
-    # u_avg: the time-averaged component if the network was trained on fluctuating velocity
-    # error: the error function to plot. 'mse' or 'mae'
+    '''Inputs
+    u: input to the autoencoder, shape [time,Ny,Nz,u]
+    y: output from ae.predict(u)
+    u_avg: the time-averaged component if the network was trained on fluctuating velocity
+    error: the error function to plot. 'mse' or 'mae' '''
     if u.ndim != 4:
         sys.exit("Input shape must be [nt,ny,nz,nu].") 
     
