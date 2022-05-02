@@ -12,7 +12,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras import backend as K
 
 # from MD_AE_model import *
-from temp_model_no_bias import *
+from model_no_bias import *
 
 import h5py
 import numpy as np
