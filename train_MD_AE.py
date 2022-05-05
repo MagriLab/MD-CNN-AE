@@ -11,8 +11,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras import backend as K
 
-# from MD_AE_model import *
-from model_no_bias import *
+from MD_AE_model import *
+# from model_no_bias import *
 
 import h5py
 import numpy as np
@@ -22,6 +22,7 @@ from contextlib import redirect_stdout
 import time
 import os
 import datetime
+import wandb
 
 start_time = datetime.datetime.now().strftime("%H:%M")
 
@@ -38,21 +39,20 @@ SHUFFLE = True # shuffle before splitting into sets, test set is extracted befor
 REMOVE_MEAN = True # train on fluctuating velocity
 
 ## ae configuration
-lmb = 0.0 #1e-05 #regulariser
+lmb = 0.001 #1e-05 #regulariser
 drop_rate = 0.2
 features_layers = [32, 64, 128]
 latent_dim = 10
-batch_size = Ntrain
-act_fct = 'linear'
+act_fct = 'tanh'
 resize_meth = 'bilinear'
 filter_window= (3,3)
-batch_norm = False
+batch_norm = True
 
 ## training
 nb_epoch = 500
 batch_size = 100
 learning_rate = 0.0001
-learning_rate_list = [0.001, 0.001, 0.0005, 0.0001, 0.00005] #[0.001,0.0001,0.00001]
+learning_rate_list = [0.01,0.001,0.0001] #[0.001,0.0001,0.00001]
 
 #================================= IMPORT DATA ==========================================================
 Nz = 24 # grid size
@@ -120,7 +120,7 @@ Nx = [Ny, Nz]
 
 #======================================= CREATE AUTOENCODER =======================================
 print('Creating a mode-decomposing autoencoder with latent dimension', latent_dim)
-md_ae = MD_Autoencoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,drop_rate=drop_rate,lmb=lmb)
+md_ae = MD_Autoencoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)
 print(md_ae.summary())
 
 #================================================ TRAINING ==========================================
@@ -186,14 +186,20 @@ st = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d__%H_%M_%S')
 folder = '/home/ym917/OneDrive/PhD/Code_md-ae/MD_' + str(latent_dim) + '__' + st + '/'
 os.mkdir(folder)
 
+finish_time = datetime.datetime.now().strftime("%H:%M")
+
+loss_test= md_ae.evaluate(u_test[0,:,:,:,:])
 filename = folder + 'test_summary.txt'
 with open(filename,'w') as f:
     with redirect_stdout(f):
         print("Shuffle ",SHUFFLE)
         print("Remove mean ",REMOVE_MEAN)
         print("Learning rate ",learning_rate_list)
+        print("Batch normalisation ",batch_norm)
         print("Drop out ",drop_rate)
         print('Activation function',act_fct)
+        print('Test loss',loss_test)
+        print('Start and finish time: ', start_time, finish_time)
 
 # summary of structure
 filename = folder + 'Autoencoder_summary.txt'
@@ -251,6 +257,12 @@ if LATENT_STATE:
     hf.create_dataset('modes_train',data=mode_train)
     hf.create_dataset('modes_test',data=mode_test) # has shape (modes,snapshots,Nx,Ny,Nu)
 hf.close()
+
+# log loss to weights and bias
+config_wandb = {"epoch":nb_epoch, "batch_size":batch_size, "learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim,"layers":features_layers, "window":filter_window, "activation_function":act_fct}
+run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name="test_run")
+for epoch in range(len(hist_train)):
+    run.log({"loss_train":hist_train[epoch], "epoch":epoch, "loss_val":hist_val[epoch]})
 
 #=================================== PLOT ==============================================
 fig_count = 0
@@ -360,6 +372,5 @@ plt.title("Testing autoencoder")
 plt.savefig(path)
 
 
-now = datetime.datetime.now().strftime("%H:%M")
 print("Started at ", start_time)
-print("Finished at ",now)
+print("Finished at ",finish_time)

@@ -31,22 +31,21 @@ SHUFFLE = True # shuffle before splitting into sets, test set is extracted befor
 REMOVE_MEAN = True # train on fluctuating velocity
 
 ## ae configuration
-lmb = 0.0 #1e-05 #regulariser
+lmb = 0.001 #1e-05 #regulariser
 drop_rate = 0.2
 features_layers = [32, 64, 128]
 latent_dim = 1
 no_of_modes = 10
-batch_size = Ntrain
-act_fct = 'linear'
+act_fct = 'tanh'
 resize_meth = 'bilinear'
 filter_window= (3,3)
-batch_norm = False
+batch_norm = True
 
 ## training
 nb_epoch = 500
 batch_size = 100
 learning_rate = 0.001
-learning_rate_list = [0.001,0.0005,0.0001]
+learning_rate_list = [0.01,0.001,0.0001]
 save_network = 'all' # the subnets (e.g. [0,1,3]) whose wights will be saved to a .h5 file. Use 'all' if saving all network (be careful if there are many subnets.)
 
 #================================= IMPORT DATA ==========================================================
@@ -107,7 +106,7 @@ Nx = [Ny, Nz]
 previous_dim = []
 subnets = []
 for _ in range(no_of_modes):
-    subnets.extend([hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=previous_dim,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,drop_rate=drop_rate,lmb=lmb)])
+    subnets.extend([hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=previous_dim,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)])
     previous_dim.extend([latent_dim])
 
 #================================================ TRAINING ==========================================
@@ -250,6 +249,7 @@ with open(filename,'w') as f:
         print('Learning rate: ', learning_rate_list)
         print('Activation: ', act_fct)
         print('Dropout rate', drop_rate)
+        print("Batch normalisation ",batch_norm)
         print('Start and finish time: ', start_time, finish_time)
 
 print('Time taken for training and testing')

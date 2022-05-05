@@ -224,8 +224,8 @@ class MD_Autoencoder(Model):
 
         self.out = self.call(self.input_img)
         
-        # re-initialise
-        super(MD_Autoencoder, self).__init__(inputs=self.input_img,outputs=self.out,**kwargs)
+        # re-initialise, uncomment this with build method
+        # super(MD_Autoencoder, self).__init__(inputs=self.input_img,outputs=self.out,**kwargs)
 
     def call(self,inputs,training=None):
         encoded = self.encoder(inputs)
@@ -238,14 +238,14 @@ class MD_Autoencoder(Model):
         out = self.layer_add(modes)
         return out
 
-    # def summary(self):
-    #     mdl = Model(self.input_img,self.out)
-    #     return mdl.summary()
+    def summary(self):
+        mdl = Model(self.input_img,self.out)
+        return mdl.summary()
 
-    def build(self):
-        # Initialize the graph
-        self._is_graph_network = True
-        self._init_graph_network(inputs=self.input_img,outputs=self.out)
+    # def build(self):
+    #     # Initialize the graph
+    #     self._is_graph_network = True
+    #     self._init_graph_network(inputs=self.input_img,outputs=self.out)
 
     def name_layer(self, prefix='MyLayer'):
         # returns a list of string ['MyLayer_0', 'MyLayer_1', ...]
