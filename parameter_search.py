@@ -109,7 +109,7 @@ def create_and_train(u_train,u_val,u_test,Nx,Nu,features_layers,latent_dim,filte
 search_act_fct = ['tanh','relu']
 search_batch_norm = [True,False]
 search_drop_rate = [0.0,0.2,0.5]
-search_lmb = [0.0,0.001,0.01]
+search_lmb = [0.0,0.001,0.0001]
 search_learning_rate = [0.01, 0.005, 0.001]
 
 

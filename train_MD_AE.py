@@ -54,6 +54,11 @@ batch_size = 100
 learning_rate = 0.0001
 learning_rate_list = [0.01,0.001,0.0001] #[0.001,0.0001,0.00001]
 
+# initalise weights&biases
+config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
+run_name = str(latent_dim)+"-mode"
+run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name=run_name)
+
 #================================= IMPORT DATA ==========================================================
 Nz = 24 # grid size
 Ny = 21
@@ -159,7 +164,7 @@ for name in md_ae.name_decoder:
 
 print('Testing...')
 if LATENT_STATE:
-    coded_train = encoder.predict(u_train[0,:,:,:,:])
+    coded_train = encoder.predict(u_train[0,:,:,:,:])#(time,mode)
     mode_train = []
     for i in range(0,latent_dim):
         z = coded_train[:,0]
@@ -188,7 +193,7 @@ os.mkdir(folder)
 
 finish_time = datetime.datetime.now().strftime("%H:%M")
 
-loss_test= md_ae.evaluate(u_test[0,:,:,:,:])
+loss_test= md_ae.evaluate(u_test[0,:,:,:,:],u_test[0,:,:,:,:],verbose=0)
 filename = folder + 'test_summary.txt'
 with open(filename,'w') as f:
     with redirect_stdout(f):
@@ -259,10 +264,9 @@ if LATENT_STATE:
 hf.close()
 
 # log loss to weights and bias
-config_wandb = {"epoch":nb_epoch, "batch_size":batch_size, "learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim,"layers":features_layers, "window":filter_window, "activation_function":act_fct}
-run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name="test_run")
-for epoch in range(len(hist_train)):
-    run.log({"loss_train":hist_train[epoch], "epoch":epoch, "loss_val":hist_val[epoch]})
+with run:
+    for epoch in range(len(hist_train)):
+        run.log({"loss_train":hist_train[epoch], "loss_val":hist_val[epoch], "loss_test":loss_test})
 
 #=================================== PLOT ==============================================
 fig_count = 0

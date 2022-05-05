@@ -12,6 +12,7 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 from contextlib import redirect_stdout
+import wandb
 
 import time
 import os
@@ -47,6 +48,11 @@ batch_size = 100
 learning_rate = 0.001
 learning_rate_list = [0.01,0.001,0.0001]
 save_network = 'all' # the subnets (e.g. [0,1,3]) whose wights will be saved to a .h5 file. Use 'all' if saving all network (be careful if there are many subnets.)
+
+# initalise weights&biases
+config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
+run_name = str(no_of_modes)+"-mode"
+run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="hierarchical",name=run_name)
 
 #================================= IMPORT DATA ==========================================================
 Nz = 24 # grid size
@@ -171,6 +177,8 @@ for i in range(no_of_modes):
     y_test.append(subnets[i].predict(input_test))
     input_test.append(subnets[i].encoder.predict(u_test[0,:,:,:,:]))
 
+loss_test = subnets[-1].evaluate(input_test[:-1],input_test[:-1])
+
 finish_time = datetime.datetime.now().strftime("%H:%M")
 
 # ============================================= Saving =============================#
@@ -180,6 +188,14 @@ st = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d__%H_%M_%S')
 # Create a new folder for the results
 folder = '/home/ym917/OneDrive/PhD/Code_md-ae/Hierarchical_' + str(no_of_modes) +'_' + str(latent_dim) + '__' + st + '/'
 os.mkdir(folder)
+
+
+# save to wandb
+with run:
+    for i in range(len(hist_train_full)):
+        if hist_train_full[i] != -1:
+            run.log({"loss_train":hist_train_full[i], "loss_val":hist_val_full[i],"loss_test":loss_test})
+
 
 # summary of structure
 filename = folder + 'Autoencoder_summary.txt'

@@ -123,11 +123,12 @@ epochs = 500
 for i in range(10):
     u_train,u_val,u_test,Nx = get_data('./PIV4_downsampled_by8.h5',Nt,Ntrain,Nval,Ntest,SHUFFLE,REMOVE_MEAN)
 
+    config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
+    run = wandb.init(reinit=True,config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name="10-mode")
+
     hist_train,hist_val,loss_test = create_and_train(u_train,u_val,u_test,Nx,Nu,features_layers,latent_dim,filter_window,act_fct,batch_norm,drop_rate,lmb,batch_size,learning_rate_list,loss,epochs,i)
 
     # log loss to weights and bias
-    config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
-    run = wandb.init(reinit=True,config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name="10-mode")
     with run:
         for epoch in range(len(hist_train)):
             run.log({"loss_train":hist_train[epoch], "loss_val":hist_val[epoch], "loss_test":loss_test})
