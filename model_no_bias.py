@@ -157,17 +157,13 @@ class MD_Autoencoder(Model):
         # DEFINE ENCODER
         self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)
         layer_size = self.encoder.get_layer_shape()
-        # DEFINE DECODER
-        # one decoder only decodes a scalar
-        # this decoder is just for setting up the structure, not used in call()
-        self.decoder = Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name='decoder')
-
+        
         # Define layers
         self.name_lambda = self.name_layer(prefix='z')
         self.name_decoder = self.name_layer(prefix='decoder')
         self.layer_decoder_group = []
         for i in range(0,self.latent_dim):
-            self.layer_decoder_group.append((Lambda(lambda x: x[:,i:i+1],name=self.name_lambda[i]),Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name=self.name_decoder[i])))
+            self.layer_decoder_group.append((Lambda(lambda x,i: x[:,i:i+1],arguments={'i':i},name=self.name_lambda[i]),Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name=self.name_decoder[i])))
         
         # print(self.layer_decoder_group)
         # for lam,decoder in self.layer_decoder_group:

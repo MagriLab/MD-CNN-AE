@@ -5,6 +5,7 @@
 # > https://doi.org/10.1017/jfm.2019.822
 
 from re import S
+from typing import final
 import tensorflow as tf
 tf.keras.backend.set_floatx('float32')
 from tensorflow.keras.optimizers import Adam
@@ -24,6 +25,17 @@ import os
 import datetime
 import wandb
 
+# use gpu
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+  try:
+    tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+    logical_gpus = tf.config.list_logical_devices('GPU')
+    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+  except RuntimeError as e:
+    # Visible devices must be set before GPUs have been initialized
+    print(e)
+
 start_time = datetime.datetime.now().strftime("%H:%M")
 
 #============================== CHANGE THESE VALUES ======================
@@ -42,7 +54,7 @@ REMOVE_MEAN = True # train on fluctuating velocity
 lmb = 0.001 #1e-05 #regulariser
 drop_rate = 0.2
 features_layers = [32, 64, 128]
-latent_dim = 10
+latent_dim = 2
 act_fct = 'tanh'
 resize_meth = 'bilinear'
 filter_window= (3,3)
@@ -51,13 +63,15 @@ batch_norm = True
 ## training
 nb_epoch = 500
 batch_size = 100
-learning_rate = 0.0001
+learning_rate = 0.01
 learning_rate_list = [0.01,0.001,0.0001] #[0.001,0.0001,0.00001]
+LOG_WANDB = False # record loss with weights and biases
 
 # initalise weights&biases
-config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
-run_name = str(latent_dim)+"-mode"
-run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name=run_name)
+if LOG_WANDB:
+    config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
+    run_name = str(latent_dim)+"-mode"
+    run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name=run_name)
 
 #================================= IMPORT DATA ==========================================================
 Nz = 24 # grid size
@@ -158,37 +172,51 @@ print('Finished training')
 
 # ============================================= Testing =============================
 encoder = md_ae.encoder
-decoders = []
-for name in md_ae.name_decoder:
-    decoders.append(md_ae.get_layer(name))
+decoders = md_ae.get_decoders()
+# decoders = []
+# for name in md_ae.name_decoder:
+#     decoders.append(md_ae.get_layer(name))
 
 print('Testing...')
 if LATENT_STATE:
     coded_train = encoder.predict(u_train[0,:,:,:,:])#(time,mode)
     mode_train = []
     for i in range(0,latent_dim):
-        z = coded_train[:,0]
+        z = coded_train[:,i]
         z = np.reshape(z,(-1,1))
         mode_train.append(decoders[i].predict(z))
     y_train = np.sum(mode_train,axis=0)
     coded_test = encoder.predict(u_test[0,:,:,:,:])
     mode_test = []
     for i in range(0,latent_dim):
-        z = coded_test[:,0]
+        z = coded_test[:,i]
         z = np.reshape(z,(-1,1))
         mode_test.append(decoders[i].predict(z))
     y_test = np.sum(mode_test,axis=0)
+    # test if results are the same
+    y_test_one = md_ae.predict(u_test[0,:,:,:,:])
+    y_train_one = md_ae.predict(u_train[0,:,:,:,:])
+    print('Are results calculated the two ways the same.',np.array_equal(np.array(y_test),np.array(y_test_one)))
 else:
     y_train = md_ae.predict(u_train[0,:,:,:,:])
     y_test = md_ae.predict(u_test[0,:,:,:,:])
 print('Finished testing')
 
 #========================================== Saving Results ==============================
+# use location specified in __system
+system_info = {} 
+with open("__system") as file:
+ for line in file:
+    key, value = line.strip().split('=')
+    system_info[key.strip()] = value.strip()
+
 print('Saving results')
 ts = time.time()
 st = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d__%H_%M_%S')
 # Create a new folder for the results
-folder = '/home/ym917/OneDrive/PhD/Code_md-ae/MD_' + str(latent_dim) + '__' + st + '/'
+new_folder= 'MD_' + str(latent_dim) + '__' + st + '/'
+path = [system_info['save_location'],new_folder]
+folder = '/'.join(path)
 os.mkdir(folder)
 
 finish_time = datetime.datetime.now().strftime("%H:%M")
@@ -215,7 +243,7 @@ with open(filename,'w') as f:
         print('\nEncoder')
         print(md_ae.encoder.summary())
         print('\nDecoder')
-        print(md_ae.decoder.summary())
+        print(md_ae.get_decoders()[0].summary())
 
 # model parameters
 filename = folder + 'Model_param.h5'
@@ -264,9 +292,10 @@ if LATENT_STATE:
 hf.close()
 
 # log loss to weights and bias
-with run:
-    for epoch in range(len(hist_train)):
-        run.log({"loss_train":hist_train[epoch], "loss_val":hist_val[epoch], "loss_test":loss_test})
+if LOG_WANDB:
+    with run:
+        for epoch in range(len(hist_train)):
+            run.log({"loss_train":hist_train[epoch], "loss_val":hist_val[epoch], "loss_test":loss_test})
 
 #=================================== PLOT ==============================================
 fig_count = 0

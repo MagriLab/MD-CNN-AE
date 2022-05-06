@@ -120,7 +120,7 @@ batch_size = 100
 loss = 'mse'
 epochs = 500
 
-for i in range(10):
+for i in range(8):
     u_train,u_val,u_test,Nx = get_data('./PIV4_downsampled_by8.h5',Nt,Ntrain,Nval,Ntest,SHUFFLE,REMOVE_MEAN)
 
     config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}

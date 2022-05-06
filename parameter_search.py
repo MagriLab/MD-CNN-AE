@@ -12,6 +12,16 @@ import h5py
 import numpy as np
 import wandb
 
+# use gpu
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+  try:
+    tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+    logical_gpus = tf.config.list_logical_devices('GPU')
+    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+  except RuntimeError as e:
+    # Visible devices must be set before GPUs have been initialized
+    print(e)
 
 # return u_train, u_val, u_test, Nx
 def get_data(data_file,Nt,Ntrain,Nval,Ntest,SHUFFLE=True,REMOVE_MEAN=True):
@@ -67,10 +77,18 @@ def get_data(data_file,Nt,Ntrain,Nval,Ntest,SHUFFLE=True,REMOVE_MEAN=True):
 
     return u_train, u_val, u_test, Nx
 
+u_train,u_val,u_test,Nx = get_data('./PIV4_downsampled_by8.h5',2732,1500,632,600,True,True)
+nb_epochs=500
 
-def create_and_train(u_train,u_val,u_test,Nx,Nu,features_layers,latent_dim,filter_window,act_fct,batch_norm,drop_rate,lmb,batch_size,learning_rate_list,loss,nb_epoch,id):
-    md_ae = MD_Autoencoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)
-    md_ae.compile(optimizer=Adam(learning_rate=learning_rate_list[0]),loss=loss)
+def create_and_train(hyperparameter_defaults = None):
+    # set up defualt hyperparameters
+    hyperparameter_defaults = {'features_layers':[32,64,128],'latent_dim':10,'filter_window':(3,3),'batch_size':100, "learning_rate":0.01, "dropout":0.0, "activation":'tanh', "regularisation":0.0, "batch_norm":True, 'REMOVE_MEAN':True}
+    run = wandb.init(config=hyperparameter_defaults,project='my_test',entity='yaxinm',group='parameter_search')
+    config = wandb.config
+
+
+    md_ae = MD_Autoencoder(Nx=Nx,Nu=2,features_layers=config.features_layers,latent_dim=config.latent_dim,filter_window=config.filter_window,act_fct=config.activation,batch_norm=config.batch_norm,drop_rate=config.dropout,lmb=config.regularisation)
+    md_ae.compile(optimizer=Adam(learning_rate=config.learning_rate),loss='mse')
 
     hist_train = []
     hist_val = []
@@ -78,13 +96,18 @@ def create_and_train(u_train,u_val,u_test,Nx,Nu,features_layers,latent_dim,filte
     model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
     early_cb=EarlyStopping(monitor='val_loss', patience=100,verbose=1)
     cb = [model_cb, early_cb]
+    
+    learning_rate_list = [] # learning rate list
+    learning_rate_list.extend([config.learning_rate])
+    learning_rate_list.extend([config.learning_rate/10])
+    learning_rate_list.extend([config.learning_rate/100])
 
     for i in range(len(learning_rate_list)):
         learning_rate = learning_rate_list[i]
         K.set_value(md_ae.optimizer.lr,learning_rate)
         hist0 = md_ae.fit(u_train[0,:,:,:,:], u_train[0,:,:,:,:],
-                        epochs=nb_epoch,
-                        batch_size=batch_size,
+                        epochs=nb_epochs,
+                        batch_size=config.batch_size,
                         shuffle=True,
                         validation_data=(u_val[0,:,:,:,:], u_val[0,:,:,:,:]),
                         callbacks=cb,
@@ -98,34 +121,34 @@ def create_and_train(u_train,u_val,u_test,Nx,Nu,features_layers,latent_dim,filte
     print(loss_test)
 
     # log loss to weights and bias
-    name = "parameter-search" + str(id)
-    config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm}
-    run = wandb.init(reinit=True,config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name="parameter-search")
     with run:
         for epoch in range(len(hist_train)):
-            run.log({"loss_train":hist_train[epoch], "loss_val":hist_val[epoch], "loss_test":loss_test})
+            wandb.log({"loss_train":hist_train[epoch], "loss_val":hist_val[epoch], "loss_test":loss_test})
 
+sweep_config = {
+  'method': 'random', 
+  'metric': {
+      'name': 'loss_val',
+      'goal': 'minimize'
+  },
+  'parameters': {
+      'activation': {
+          'values': ['tanh','relu']
+      },
+      'batch_norm':{
+          'values': [True,False]
+      },
+      'dropout':{
+          'values': [0.0,0.1,0.2,0.3,0.5]
+      },
+      'regularisation':{
+          'values': [0.0,0.001,0.0001,0.00001]
+      },
+      'learning_rate':{
+          'values': [0.01, 0.005, 0.001]
+      }
+  }
+}
 
-search_act_fct = ['tanh','relu']
-search_batch_norm = [True,False]
-search_drop_rate = [0.0,0.2,0.5]
-search_lmb = [0.0,0.001,0.0001]
-search_learning_rate = [0.01, 0.005, 0.001]
-
-
-
-u_train,u_val,u_test,Nx = get_data('./PIV4_downsampled_by8.h5',2732,1500,632,600,True,True)
-
-
-for i in range(15):
-    act_fct = choice(search_act_fct)
-    batch_norm = choice(search_batch_norm)
-    drop_rate = choice(search_drop_rate)
-    lmb = choice(search_lmb)
-    learning_rate = choice(search_learning_rate)
-    learning_rate_list = []
-    learning_rate_list.extend([learning_rate])
-    learning_rate_list.extend([learning_rate/10])
-    learning_rate_list.extend([learning_rate/100])
-    
-    create_and_train(u_train,u_val,u_test,Nx,2,[32, 64, 128],10,(3,3),act_fct,batch_norm,drop_rate,lmb,100,learning_rate_list,'mse',500,i)
+sweep_id = wandb.sweep(sweep_config, project="MD-CNN-AE")
+wandb.agent(sweep_id, function=create_and_train, count=20)

@@ -203,17 +203,13 @@ class MD_Autoencoder(Model):
         # DEFINE ENCODER
         self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)
         layer_size = self.encoder.get_layer_shape()
-        # DEFINE DECODER
-        # one decoder only decodes a scalar
-        # this decoder is just for setting up the structure, not used in call()
-        self.decoder = Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name='decoder')
 
         # Define layers
         self.name_lambda = self.name_layer(prefix='z')
         self.name_decoder = self.name_layer(prefix='decoder')
         self.layer_decoder_group = []
         for i in range(0,self.latent_dim):
-            self.layer_decoder_group.append((Lambda(lambda x: x[:,i:i+1],name=self.name_lambda[i]),Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name=self.name_decoder[i])))
+            self.layer_decoder_group.append((Lambda(lambda x,i: x[:,i:i+1],arguments={'i':i},name=self.name_lambda[i]),Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name=self.name_decoder[i])))
         
         # print(self.layer_decoder_group)
         # for lam,decoder in self.layer_decoder_group:
@@ -234,7 +230,6 @@ class MD_Autoencoder(Model):
             x = lam(encoded)
             x = decoder(x)
             modes.append(x)
-            del x
         out = self.layer_add(modes)
         return out
 
@@ -266,12 +261,12 @@ class MD_Autoencoder(Model):
         return decoders
 
 
-class hierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form subnet 1), latent_vector_2,...]
+class HierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form subnet 1), latent_vector_2,...]
     # Ref: K. Fukami, T. Nakamura, and K. Fukagata, ``Convolutional neural network based hierarchical autoencoder for nonlinear mode decomposition of fluid field data," Physics of Fluids, 32, 095110, (2020)
     def __init__(self,Nx,Nu,previous_dim=[],features_layers=[1],latent_dim=1,
         filter_window=(3,3),act_fct='tanh',batch_norm=False,
         drop_rate=0.0, lmb=0.0,resize_meth='bilinear', *args, **kwargs):
-        super(hierarchicalAE_sub,self).__init__(*args,**kwargs)
+        super(HierarchicalAE_sub,self).__init__(*args,**kwargs)
 
         self.Nx = Nx
         self.Nu = Nu
