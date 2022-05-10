@@ -4,9 +4,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras import backend as K
 
-# from MD_AE_model import *
-from model_no_bias import *
-import myplot
+from MD_AE_model import *
+# from model_no_bias import *
 
 import h5py
 import numpy as np
@@ -16,7 +15,25 @@ import wandb
 
 import time
 import os
+import configparser
 import datetime
+
+# get system information
+config = configparser.ConfigParser()
+config.read('__system.ini')
+system_info = config['system_info']
+
+# use gpu
+if system_info.getboolean('GPU'):
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+            logical_gpus = tf.config.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+        except RuntimeError as e:
+            # Visible devices must be set before GPUs have been initialized
+            print(e)
 
 start_time = datetime.datetime.now().strftime("%H:%M")
 
@@ -46,13 +63,15 @@ batch_norm = True
 nb_epoch = 500
 batch_size = 100
 learning_rate = 0.001
-learning_rate_list = [0.01,0.001,0.0001]
+learning_rate_list = [learning_rate,learning_rate/10,learning_rate/100]
 save_network = 'all' # the subnets (e.g. [0,1,3]) whose wights will be saved to a .h5 file. Use 'all' if saving all network (be careful if there are many subnets.)
+LOG_WANDB = True
 
 # initalise weights&biases
-config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
-run_name = str(no_of_modes)+"-mode"
-run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="hierarchical",name=run_name)
+if LOG_WANDB:
+    config_wandb = {'features_layers':features_layers,'latent_dim':no_of_modes,'filter_window':filter_window,'batch_size':batch_size, "learning_rate":learning_rate, "dropout":drop_rate, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, 'REMOVE_MEAN':REMOVE_MEAN}
+    run_name = "hierarchical-"+str(no_of_modes)+"-mode"
+    run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="hierarchical",name=run_name)
 
 #================================= IMPORT DATA ==========================================================
 Nz = 24 # grid size
@@ -112,7 +131,7 @@ Nx = [Ny, Nz]
 previous_dim = []
 subnets = []
 for _ in range(no_of_modes):
-    subnets.extend([hierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=previous_dim,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)])
+    subnets.extend([HierarchicalAE_sub(Nx=Nx,Nu=Nu,previous_dim=previous_dim,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)])
     previous_dim.extend([latent_dim])
 
 #================================================ TRAINING ==========================================
@@ -186,7 +205,8 @@ print('Saving results')
 ts = time.time()
 st = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d__%H_%M_%S')
 # Create a new folder for the results
-folder = '/home/ym917/OneDrive/PhD/Code_md-ae/Hierarchical_' + str(no_of_modes) +'_' + str(latent_dim) + '__' + st + '/'
+new_folder = '/Hierarchical_' + str(no_of_modes) +'_' + str(latent_dim) + '__' + st + '/'
+folder = system_info['save_location'] + new_folder
 os.mkdir(folder)
 
 

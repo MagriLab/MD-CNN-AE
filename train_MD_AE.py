@@ -15,6 +15,8 @@ from tensorflow.keras import backend as K
 from MD_AE_model import *
 # from model_no_bias import *
 
+import myplot
+
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,19 +24,26 @@ from contextlib import redirect_stdout
 
 import time
 import os
+import configparser
 import datetime
 import wandb
 
+# get system information
+config = configparser.ConfigParser()
+config.read('__system.ini')
+system_info = config['system_info']
+
 # use gpu
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-  try:
-    tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
-    logical_gpus = tf.config.list_logical_devices('GPU')
-    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
-  except RuntimeError as e:
-    # Visible devices must be set before GPUs have been initialized
-    print(e)
+if system_info.getboolean('GPU'):
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            tf.config.set_visible_devices(gpus[0], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+            logical_gpus = tf.config.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+        except RuntimeError as e:
+            # Visible devices must be set before GPUs have been initialized
+            print(e)
 
 start_time = datetime.datetime.now().strftime("%H:%M")
 
@@ -54,7 +63,7 @@ REMOVE_MEAN = True # train on fluctuating velocity
 lmb = 0.001 #1e-05 #regulariser
 drop_rate = 0.2
 features_layers = [32, 64, 128]
-latent_dim = 2
+latent_dim = 10
 act_fct = 'tanh'
 resize_meth = 'bilinear'
 filter_window= (3,3)
@@ -63,13 +72,13 @@ batch_norm = True
 ## training
 nb_epoch = 500
 batch_size = 100
-learning_rate = 0.01
-learning_rate_list = [0.01,0.001,0.0001] #[0.001,0.0001,0.00001]
-LOG_WANDB = False # record loss with weights and biases
+learning_rate = 0.001
+learning_rate_list = [learning_rate,learning_rate/10,learning_rate/100] #[0.001,0.0001,0.00001]
+LOG_WANDB = True # record loss with weights and biases
 
 # initalise weights&biases
 if LOG_WANDB:
-    config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
+    config_wandb = {'features_layers':features_layers,'latent_dim':latent_dim,'filter_window':filter_window,'batch_size':batch_size, "learning_rate":learning_rate, "dropout":drop_rate, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, 'REMOVE_MEAN':REMOVE_MEAN}
     run_name = str(latent_dim)+"-mode"
     run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name=run_name)
 
@@ -203,20 +212,12 @@ else:
 print('Finished testing')
 
 #========================================== Saving Results ==============================
-# use location specified in __system
-system_info = {} 
-with open("__system") as file:
- for line in file:
-    key, value = line.strip().split('=')
-    system_info[key.strip()] = value.strip()
-
 print('Saving results')
 ts = time.time()
 st = datetime.datetime.fromtimestamp(ts).strftime('%Y_%m_%d__%H_%M_%S')
 # Create a new folder for the results
-new_folder= 'MD_' + str(latent_dim) + '__' + st + '/'
-path = [system_info['save_location'],new_folder]
-folder = '/'.join(path)
+new_folder= '/MD_' + str(latent_dim) + '__' + st + '/'
+folder = system_info['save_location'] + new_folder
 os.mkdir(folder)
 
 finish_time = datetime.datetime.now().strftime("%H:%M")
@@ -313,53 +314,55 @@ plt.legend()
 plt.savefig(path)
 
 # find mean absolute error
-if REMOVE_MEAN:
-    y_test = y_test + u_mean_all # add fluctuation and average velocities
-    u_test = u_test[0,:,:,:,:] + u_mean_all
-else:
-    u_test = u_test[0,:,:,:,:]
+# if REMOVE_MEAN:
+#     y_test = y_test + u_mean_all # add fluctuation and average velocities
+#     u_test = u_test[0,:,:,:,:] + u_mean_all
+# else:
+#     u_test = u_test[0,:,:,:,:]
 
-y_mean = np.mean(y_test,0)
-u_mean = np.mean(u_test[:,:,:,:],0)
-e = np.abs(y_test-u_test)
-e_mean = np.mean(e,0)
+# y_mean = np.mean(y_test,0)
+# u_mean = np.mean(u_test[:,:,:,:],0)
+# e = np.abs(y_test-u_test)
+# e_mean = np.mean(e,0)
 
 # plot comparison
 # find common colourbar
-umin = min(np.amin(u_mean[:,:,0]),np.amin(y_mean[:,:,0]))
-umax = max(np.amax(u_mean[:,:,0]),np.amax(y_mean[:,:,0]))
+# umin = min(np.amin(u_mean[:,:,0]),np.amin(y_mean[:,:,0]))
+# umax = max(np.amax(u_mean[:,:,0]),np.amax(y_mean[:,:,0]))
 
-vmin = min(np.amin(u_mean[:,:,1]),np.amin(y_mean[:,:,1]))
-vmax = max(np.amax(u_mean[:,:,1]),np.amax(y_mean[:,:,1]))
+# vmin = min(np.amin(u_mean[:,:,1]),np.amin(y_mean[:,:,1]))
+# vmax = max(np.amax(u_mean[:,:,1]),np.amax(y_mean[:,:,1]))
 
 fig_count = fig_count + 1
 path = folder + 'autoencoder_results.png'
 plt.figure(fig_count)
 
-ax1 = plt.subplot(2,3,1,title="True",xticks=[],yticks=[],ylabel='v')
-ax1 = plt.imshow(u_mean[:,:,0],'jet',vmin=umin,vmax=umax)
-plt.colorbar()
+myplot.plot_ae_results(u_test[0,:,:,:,:],y_test,u_mean_all,error='mse',savefig=True,path=path)
 
-ax2 = plt.subplot(2,3,2,title="Predicted",xticks=[],yticks=[])
-ax2 = plt.imshow(y_mean[:,:,0],'jet',vmin=umin,vmax=umax)
-plt.colorbar()
+# ax1 = plt.subplot(2,3,1,title="True",xticks=[],yticks=[],ylabel='v')
+# ax1 = plt.imshow(u_mean[:,:,0],'jet',vmin=umin,vmax=umax)
+# plt.colorbar()
 
-ax3 = plt.subplot(2,3,3,title="Absolute error",xticks=[],yticks=[]) # u error
-ax3 = plt.imshow(e_mean[:,:,0],'jet')
-plt.colorbar()
+# ax2 = plt.subplot(2,3,2,title="Predicted",xticks=[],yticks=[])
+# ax2 = plt.imshow(y_mean[:,:,0],'jet',vmin=umin,vmax=umax)
+# plt.colorbar()
 
-ax4 = plt.subplot(2,3,4,xticks=[],yticks=[],ylabel='w')
-ax4 = plt.imshow(u_mean[:,:,1],'jet',vmin=vmin,vmax=vmax)
-plt.colorbar()
+# ax3 = plt.subplot(2,3,3,title="Absolute error",xticks=[],yticks=[]) # u error
+# ax3 = plt.imshow(e_mean[:,:,0],'jet')
+# plt.colorbar()
 
-ax5 = plt.subplot(2,3,5,xticks=[],yticks=[])
-ax5 = plt.imshow(y_mean[:,:,1],'jet',vmin=vmin,vmax=vmax)
-plt.colorbar()
+# ax4 = plt.subplot(2,3,4,xticks=[],yticks=[],ylabel='w')
+# ax4 = plt.imshow(u_mean[:,:,1],'jet',vmin=vmin,vmax=vmax)
+# plt.colorbar()
 
-ax6 = plt.subplot(2,3,6,xticks=[],yticks=[]) 
-ax6 = plt.imshow(e_mean[:,:,1],'jet')
-plt.colorbar()
-plt.savefig(path)
+# ax5 = plt.subplot(2,3,5,xticks=[],yticks=[])
+# ax5 = plt.imshow(y_mean[:,:,1],'jet',vmin=vmin,vmax=vmax)
+# plt.colorbar()
+
+# ax6 = plt.subplot(2,3,6,xticks=[],yticks=[]) 
+# ax6 = plt.imshow(e_mean[:,:,1],'jet')
+# plt.colorbar()
+# plt.savefig(path)
 
 # plot modes
 if LATENT_STATE:

@@ -16,7 +16,7 @@ import wandb
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
   try:
-    tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+    tf.config.set_visible_devices(gpus[0], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
     logical_gpus = tf.config.list_logical_devices('GPU')
     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
   except RuntimeError as e:
