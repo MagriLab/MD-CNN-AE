@@ -19,6 +19,8 @@ import myplot
 
 import h5py
 import numpy as np
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from contextlib import redirect_stdout
 

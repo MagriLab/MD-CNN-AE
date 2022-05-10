@@ -222,7 +222,7 @@ class HierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form su
     def __init__(self,Nx,Nu,previous_dim=[],features_layers=[1],latent_dim=1,
         filter_window=(3,3),act_fct='tanh',batch_norm=False,
         drop_rate=0.0, lmb=0.0,resize_meth='bilinear', *args, **kwargs):
-        super(hierarchicalAE_sub,self).__init__(*args,**kwargs)
+        super(HierarchicalAE_sub,self).__init__(*args,**kwargs)
 
         self.Nx = Nx
         self.Nu = Nu

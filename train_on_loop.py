@@ -6,10 +6,27 @@ from tensorflow.keras import backend as K
 
 from MD_AE_model import *
 
-from random import choice
 import h5py
 import numpy as np
 import wandb
+import configparser
+
+# get system information
+config = configparser.ConfigParser()
+config.read('__system.ini')
+system_info = config['system_info']
+
+# use gpu
+if system_info.getboolean('GPU'):
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            tf.config.set_visible_devices(gpus[0], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+            logical_gpus = tf.config.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+        except RuntimeError as e:
+            # Visible devices must be set before GPUs have been initialized
+            print(e)
 
 def get_data(data_file,Nt,Ntrain,Nval,Ntest,SHUFFLE=True,REMOVE_MEAN=True):
     Nz = 24 # grid size
@@ -112,7 +129,8 @@ latent_dim = 10
 act_fct = 'tanh'
 batch_norm = True
 drop_rate = 0.2
-learning_rate_list = [0.01, 0.001, 0.0001]
+learning_rate = 0.001
+learning_rate_list = [learning_rate,learning_rate/10,learning_rate/100]
 lmb = 0.001
 features_layers = [32, 64, 128]
 filter_window = (3,3)
@@ -123,8 +141,9 @@ epochs = 500
 for i in range(8):
     u_train,u_val,u_test,Nx = get_data('./PIV4_downsampled_by8.h5',Nt,Ntrain,Nval,Ntest,SHUFFLE,REMOVE_MEAN)
 
-    config_wandb = {"learning_rate":learning_rate_list, "dropout":drop_rate, "latent_size":latent_dim, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, "no_mean":REMOVE_MEAN}
-    run = wandb.init(reinit=True,config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name="10-mode")
+    config_wandb = {'features_layers':features_layers,'latent_dim':latent_dim,'filter_window':filter_window,'batch_size':batch_size, "learning_rate":learning_rate, "dropout":drop_rate, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, 'REMOVE_MEAN':REMOVE_MEAN}
+    run_name = str(latent_dim)+"-mode"
+    run = wandb.init(reinit=True,config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name=run_name)
 
     hist_train,hist_val,loss_test = create_and_train(u_train,u_val,u_test,Nx,Nu,features_layers,latent_dim,filter_window,act_fct,batch_norm,drop_rate,lmb,batch_size,learning_rate_list,loss,epochs,i)
 
