@@ -217,7 +217,7 @@ class MD_Autoencoder(Model):
 
 
 
-class hierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form subnet 1), latent_vector_2,...]
+class HierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form subnet 1), latent_vector_2,...]
     # Ref: K. Fukami, T. Nakamura, and K. Fukagata, ``Convolutional neural network based hierarchical autoencoder for nonlinear mode decomposition of fluid field data," Physics of Fluids, 32, 095110, (2020)
     def __init__(self,Nx,Nu,previous_dim=[],features_layers=[1],latent_dim=1,
         filter_window=(3,3),act_fct='tanh',batch_norm=False,
