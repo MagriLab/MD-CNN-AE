@@ -70,9 +70,11 @@ def plot_ae_results(u,y,u_avg=None,error='mae',savefig=False,path=None):
     if error == 'mae':
         e = np.abs(y-u)
         e_mean = np.mean(e,0)
+        e_title = 'Absolute error'
     elif error == 'mse':
         e = (y-u)**2
         e_mean = np.mean(e,0)
+        e_title = 'Mean square error'
     else:
         sys.exit('Please choose from mse or mae, or define your own error function.')
 
@@ -93,7 +95,7 @@ def plot_ae_results(u,y,u_avg=None,error='mae',savefig=False,path=None):
     ax2 = plt.imshow(y_mean[:,:,0],'jet',vmin=umin,vmax=umax)
     plt.colorbar()
 
-    ax3 = plt.subplot(2,3,3,title="Absolute error",xticks=[],yticks=[]) # u error
+    ax3 = plt.subplot(2,3,3,title=e_title,xticks=[],yticks=[]) # u error
     ax3 = plt.imshow(e_mean[:,:,0],'jet')
     plt.colorbar()
 
