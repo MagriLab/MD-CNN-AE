@@ -224,7 +224,7 @@ os.mkdir(folder)
 
 finish_time = datetime.datetime.now().strftime("%H:%M")
 
-loss_test= md_ae.evaluate(u_test[0,:,:,:,:],u_test[0,:,:,:,:],verbose=0)
+loss_test= tf.keras.losses.MeanSquaredError(u_test,y_test)
 filename = folder + 'test_summary.txt'
 with open(filename,'w') as f:
     with redirect_stdout(f):

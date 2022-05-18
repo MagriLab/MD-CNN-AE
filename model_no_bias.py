@@ -283,7 +283,54 @@ class HierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form su
         z_full.append(z_new)
         z_full = np.concatenate(z_full,axis=1)
         return z_full
+
+class Autoencoder(Model):
+    def __init__(self,Nx,Nu,features_layers=[1],latent_dim=1,
+        filter_window=(3,3),act_fct='tanh',batch_norm=False,
+        drop_rate=0.0, lmb=0.0,resize_meth='bilinear',**kwargs):
+        super(Autoencoder,self).__init__(**kwargs)
+
+        self.Nx = Nx # [num1,num2]
+        self.Nu = Nu
+        self.features_layers = features_layers
+        self.latent_dim = latent_dim
+        self.filter_window = filter_window
+        self.act_fct = act_fct
+        self.batch_norm = batch_norm
+        self.drop_rate = drop_rate
+        self.lmb =lmb
+        self.resize_meth = resize_meth
+
+        # ENCODER
+        self.encoder = Encoder(Nx=self.Nx,Nu=self.Nu,features_layers=self.features_layers,latent_dim=self.latent_dim,filter_window=self.filter_window,act_fct=self.act_fct,batch_norm=self.batch_norm,drop_rate=self.drop_rate,lmb=self.lmb)
+        # DECODER
+        layer_size = self.encoder.get_layer_shape()
+        self.decoder = Decoder(Nx=self.Nx,Nu=self.Nu,layer_size=layer_size,features_layers=self.features_layers,latent_dim=self.latent_dim,filter_window=self.filter_window,act_fct=self.act_fct,batch_norm=self.batch_norm,drop_rate=self.drop_rate,lmb=self.lmb)
+
+
+        input_shape = (self.Nx[0],self.Nx[1],self.Nu)
+        self.input_img = Input(shape = input_shape)
+        self.out = self.call(self.input_img)
     
+        # re-initialise, with the build() function
+        # super(Autoencoder, self).__init__(inputs=self.input_img,outputs=self.out,**kwargs)
+
+    def call(self,inputs,training=False): # input as a layer
+        encoded = self.encoder(inputs)
+        decoded = self.decoder(encoded)
+        return decoded
+
+    # def build(self):
+    #     # Initialize the graph
+    #     self._is_graph_network = True
+    #     self._init_graph_network(inputs=self.input_img,outputs=self.out)
+
+    def summary(self):
+        encoder = Model(self.input_img,self.out)
+        return encoder.summary()    
+
+    
+
 
 class ResizeImages(Layer):
     """Resize Images to a specified size
