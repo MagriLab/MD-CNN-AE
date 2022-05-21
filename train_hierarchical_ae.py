@@ -98,12 +98,6 @@ hf.close()
 #=================================== DEFINE TRAINING ==========================================
 u_all = u_all[:,:,:,:].astype('float32')
 
-# remove mean for modes
-if REMOVE_MEAN:
-    u_mean_all = np.mean(u_all,axis=0) # time averaged, (Ny,Nz,Nu)
-    u_all = u_all - u_mean_all
-
-
 if SHUFFLE:
     idx_test = np.random.randint(0,Nt-Ntest)
     u_test = u_all[idx_test:idx_test+Ntest,:,:,:].astype('float32') # test set needs to be in order and has continuous snapshots
@@ -120,6 +114,17 @@ else:
     u_val = u_all[Ntrain:Ntrain+Nval,:,:,:].astype('float32')
     u_test = u_all[Ntrain+Nval:Ntrain+Nval+Ntest,:,:,:].astype('float32')
     u_all = u_all[0:Ntrain+Nval+Ntest,:,:,:].astype('float32') # u_all has shape (Ntrain+Nval+Ntest,Ny,Nz,Nu)
+
+# remove mean for training
+if REMOVE_MEAN:
+    u_mean_all = np.mean(u_all,axis=0)
+    u_all = u_all - u_mean_all
+    u_mean_train = np.mean(u_train,axis=0)
+    u_train = u_train-u_mean_train
+    u_mean_val = np.mean(u_val,axis=0)
+    u_val = u_val - u_mean_val
+    u_mean_test = np.mean(u_test,axis=0)
+    u_test = u_test-u_mean_test
 
 u_all = np.reshape(u_all,(1,Ntrain+Nval+Ntest,Ny,Nz,Nu)) # new shape (1,Nval+Ntrain+Ntest,Ny,Nz,Nu)
 u_train = np.reshape(u_train,(1,Ntrain,Ny,Nz,Nu))
@@ -273,6 +278,9 @@ hf.create_dataset('latent_test',data=input_test[1:])
 hf.create_dataset('y_test',data=y_test) # results from [subnet1, subnet2 ...]
 if REMOVE_MEAN:
     hf.create_dataset('u_avg',data=u_mean_all)
+    hf.create_dataset('u_avg_train',data=u_mean_train)
+    hf.create_dataset('u_avg_val',data=u_mean_val)
+    hf.create_dataset('u_avg_test',data=u_mean_test)
 hf.close()
 
 # summary of test
