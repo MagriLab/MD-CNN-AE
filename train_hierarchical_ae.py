@@ -196,7 +196,8 @@ for i in range(no_of_modes):
     y_test.append(subnets[i].predict(input_test))
     input_test.append(subnets[i].encoder.predict(u_test[0,:,:,:,:]))
 
-loss_test = subnets[-1].evaluate(input_test[:-1],input_test[:-1])
+# loss_test = subnets[-1].evaluate(input_test[:-1],input_test[:-1])
+loss_test= tf.keras.losses.MeanSquaredError(u_test[0,:,:,:,:],subnets[-1].predict(input_test[:-1]))
 
 finish_time = datetime.datetime.now().strftime("%H:%M")
 

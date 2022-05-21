@@ -1,7 +1,7 @@
-from numpy import array
-for i in range(5):
-    a = array([0,1,2,3,4,5])+i
-    for j in range(6):
-        if a[j] >= 4:
-            print(j)
-            break
+import numpy as np
+
+a = np.array([1.0,2.7,3.2])
+b = np.array([1.1,2.7,3.2])
+
+print(np.array_equal(a,b))
+print(np.allclose(a,b))

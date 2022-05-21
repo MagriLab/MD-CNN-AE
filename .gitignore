@@ -2,3 +2,5 @@ temp*
 __*
 wandb/
 .*
+*.gif
+*.png

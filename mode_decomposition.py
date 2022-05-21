@@ -177,7 +177,7 @@ class POD:
 
     
     def classic_POD(self,Q):
-        C = Q @ ((Q.T)*(self.w.T)) # 2-point spatial correlation tesnsor: Q*Q'
+        C = Q @ ((Q.T)*(self.w.T))/(self.nx-1) # 2-point spatial correlation tesnsor: Q*Q'
         # print('C is Hermitian?',np.allclose(C,np.conj(C.T)))
         lam,Phi = np.linalg.eigh(C) # right eigenvectors and eigenvalues
         idx = np.argsort(lam) # sort
@@ -192,7 +192,7 @@ class POD:
     
     
     def snapshot_POD(self,Q):
-        C = (Q.T) @ (Q*self.w) # 2-point temporal correlation tesnsor: Q'*Q 
+        C = (Q.T) @ (Q*self.w)/(self.nx-1) # 2-point temporal correlation tesnsor: Q'*Q 
         lam,Phi = np.linalg.eigh(C)
         idx = np.argsort(np.abs(lam)) # sort
         idx = np.flip(idx)
