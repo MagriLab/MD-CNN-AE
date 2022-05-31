@@ -177,7 +177,7 @@ class POD:
 
     
     def classic_POD(self,Q):
-        C = Q @ ((Q.T)*(self.w.T))/(self.nx-1) # 2-point spatial correlation tesnsor: Q*Q'
+        C = Q @ ((Q.T)*(self.w.T))/(self.nt-1) # 2-point spatial correlation tesnsor: Q*Q'
         # print('C is Hermitian?',np.allclose(C,np.conj(C.T)))
         lam,Phi = np.linalg.eigh(C) # right eigenvectors and eigenvalues
         idx = np.argsort(lam) # sort
@@ -192,7 +192,7 @@ class POD:
     
     
     def snapshot_POD(self,Q):
-        C = (Q.T) @ (Q*self.w)/(self.nx-1) # 2-point temporal correlation tesnsor: Q'*Q 
+        C = (Q.T) @ (Q*self.w)/(self.nt-1) # 2-point temporal correlation tesnsor: Q'*Q 
         lam,Phi = np.linalg.eigh(C)
         idx = np.argsort(np.abs(lam)) # sort
         idx = np.flip(idx)
@@ -208,7 +208,7 @@ class POD:
         original_shape.extend([-1])
         self.modes = np.reshape(self.modes,original_shape)
 
-    def reconstruct(self,t,number_of_modes,Q_mean='self',Q='self',Phi='self',shape='self'):
+    def reconstruct(self,number_of_modes,Q_mean='self',Q='self',Phi='self',shape='self'):
         # Input: 
         # shape: reshape the reconstructed vector into this shape, if not given the result is reshaped to self.grid_shape
         # If any of 'Q_mean', 'Q', or 'Phi' is not given, the method uses the values stored in self
@@ -220,15 +220,13 @@ class POD:
             # temporal coefficient A
             self.A = Q.T @ Phi #(nt,nx)
             Q_add = Phi[:,0:number_of_modes] @ self.A[:,0:number_of_modes].T
-            Q_add = Q_add[:,t]
         elif self.typePOD == 'snapshot':
             # spatial coefficient A
             self.A = Q @ Phi #(nx,nt)
             Q_add = self.A[:,0:number_of_modes] @ Phi[:,0:number_of_modes].T
-            Q_add = Q_add[:,t]
-        rebuildv = Q_mean + Q_add
+        rebuildv = np.reshape(Q_mean,(-1,1)) + Q_add
         if shape == 'self':
-            rebuildv = np.reshape(rebuildv,self.grid_shape)
+            rebuildv = np.reshape(rebuildv,self.grid_shape.append(-1))
         else:
             rebuildv = np.reshape(rebuildv,shape)
         return rebuildv

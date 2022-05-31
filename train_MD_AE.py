@@ -36,22 +36,21 @@ config.read('__system.ini')
 system_info = config['system_info']
 
 # use gpu
-if system_info.getboolean('GPU'):
-    gpus = tf.config.list_physical_devices('GPU')
-    if gpus:
-        try:
-            tf.config.set_visible_devices(gpus[0], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
-            logical_gpus = tf.config.list_logical_devices('GPU')
-            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
-        except RuntimeError as e:
-            # Visible devices must be set before GPUs have been initialized
-            print(e)
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        tf.config.set_visible_devices(gpus[0], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+        logical_gpus = tf.config.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+    except RuntimeError as e:
+        # Visible devices must be set before GPUs have been initialized
+        print(e)
 
 start_time = datetime.datetime.now().strftime("%H:%M")
 
 #============================== CHANGE THESE VALUES ======================
 # data
-data_file = './PIV4_downsampled_by8.h5'
+data_file = './data/PIV4_downsampled_by8.h5'
 Ntrain = 1500 # snapshots for training
 Nval = 632 # sanpshots for validation
 Ntest = 600
@@ -340,8 +339,6 @@ plt.savefig(path)
 
 fig_count = fig_count + 1
 path = folder + 'autoencoder_results.png'
-plt.figure(fig_count)
-
 myplot.plot_ae_results(u_test[0,:,:,:,:],y_test,u_mean_all,error='mse',savefig=True,path=path)
 
 # ax1 = plt.subplot(2,3,1,title="True",xticks=[],yticks=[],ylabel='v')
@@ -404,7 +401,7 @@ if LATENT_STATE:
 # plot latent variables
 fig_count = fig_count + 1
 path = folder + 'latent_variables.png'
-plt.figure(fig_count)
+plt.figure()
 plt.plot(coded_test[:,0],label='1')
 plt.plot(coded_test[:,1],label='2')
 plt.legend()

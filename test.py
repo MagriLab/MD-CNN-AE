@@ -1,7 +1,13 @@
+from re import L
 import numpy as np
+from matplotlib import pyplot as plt
 
-a = np.array([1.0,2.7,3.2])
-b = np.array([1.1,2.7,3.2])
+a = np.arange(-2,2,0.01)
+h = np.tanh(a)
+l = 0.92*a
 
-print(np.array_equal(a,b))
-print(np.allclose(a,b))
+plt.figure()
+plt.plot(a,h)
+plt.plot(a,l)
+plt.grid()
+plt.show()

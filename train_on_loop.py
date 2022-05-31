@@ -139,7 +139,7 @@ loss = 'mse'
 epochs = 500
 
 for i in range(8):
-    u_train,u_val,u_test,Nx = get_data('./PIV4_downsampled_by8.h5',Nt,Ntrain,Nval,Ntest,SHUFFLE,REMOVE_MEAN)
+    u_train,u_val,u_test,Nx = get_data('./data/PIV4_downsampled_by8.h5',Nt,Ntrain,Nval,Ntest,SHUFFLE,REMOVE_MEAN)
 
     config_wandb = {'features_layers':features_layers,'latent_dim':latent_dim,'filter_window':filter_window,'batch_size':batch_size, "learning_rate":learning_rate, "dropout":drop_rate, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, 'REMOVE_MEAN':REMOVE_MEAN}
     run_name = str(latent_dim)+"-mode"

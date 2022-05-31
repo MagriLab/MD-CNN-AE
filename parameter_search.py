@@ -77,7 +77,7 @@ def get_data(data_file,Nt,Ntrain,Nval,Ntest,SHUFFLE=True,REMOVE_MEAN=True):
 
     return u_train, u_val, u_test, Nx
 
-u_train,u_val,u_test,Nx = get_data('./PIV4_downsampled_by8.h5',2732,1500,632,600,True,True)
+u_train,u_val,u_test,Nx = get_data('./data/PIV4_downsampled_by8.h5',2732,1500,632,600,True,True)
 nb_epochs=500
 
 def create_and_train(hyperparameter_defaults = None):

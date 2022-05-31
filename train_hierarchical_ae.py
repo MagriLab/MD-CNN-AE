@@ -24,22 +24,21 @@ config.read('__system.ini')
 system_info = config['system_info']
 
 # use gpu
-if system_info.getboolean('GPU'):
-    gpus = tf.config.list_physical_devices('GPU')
-    if gpus:
-        try:
-            tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
-            logical_gpus = tf.config.list_logical_devices('GPU')
-            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
-        except RuntimeError as e:
-            # Visible devices must be set before GPUs have been initialized
-            print(e)
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+        logical_gpus = tf.config.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+    except RuntimeError as e:
+        # Visible devices must be set before GPUs have been initialized
+        print(e)
 
 start_time = datetime.datetime.now().strftime("%H:%M")
 
 #============================== CHANGE THESE VALUES ======================
 # data
-data_file = './PIV4_downsampled_by8.h5'
+data_file = './data/PIV4_downsampled_by8.h5'
 Ntrain = 1500 # snapshots for training
 Nval = 632 # sanpshots for validation
 Ntest = 600
