@@ -4,7 +4,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras import backend as K
 
-from MD_AE_model import *
+from MD_AE_tools.models.models import *
 
 import h5py
 import numpy as np
@@ -17,16 +17,15 @@ config.read('__system.ini')
 system_info = config['system_info']
 
 # use gpu
-if system_info.getboolean('GPU'):
-    gpus = tf.config.list_physical_devices('GPU')
-    if gpus:
-        try:
-            tf.config.set_visible_devices(gpus[0], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
-            logical_gpus = tf.config.list_logical_devices('GPU')
-            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
-        except RuntimeError as e:
-            # Visible devices must be set before GPUs have been initialized
-            print(e)
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        tf.config.set_visible_devices(gpus[0], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+        logical_gpus = tf.config.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+    except RuntimeError as e:
+        # Visible devices must be set before GPUs have been initialized
+        print(e)
 
 def get_data(data_file,Nt,Ntrain,Nval,Ntest,SHUFFLE=True,REMOVE_MEAN=True):
     Nz = 24 # grid size

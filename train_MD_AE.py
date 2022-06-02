@@ -12,8 +12,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras import backend as K
 
-from MD_AE_model import *
-# from model_no_bias import *
+from MD_AE_tools.models.models import *
+# from MD_AE_tools.models.models_no_bias import *
 
 import myplot
 

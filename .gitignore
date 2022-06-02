@@ -1,6 +1,10 @@
 temp*
-__*
-wandb/
+~*
 .*
+
+
 *.gif
 *.png
+
+wandb/
+__pycache__

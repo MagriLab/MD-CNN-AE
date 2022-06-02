@@ -2,8 +2,8 @@ from ast import Lambda
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-import mode_decomposition as md
-import autoencoder_modes_selection as ranking
+import MD_AE_tools.mode_decomposition as md
+import MD_AE_tools.ae_mode_selection as ranking
 
 
 

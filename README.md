@@ -2,7 +2,7 @@
 
 Mode decomposition with autoencoders. 
 
-Content:
+## Content:
 
     1. Models for mode decomposing autoencoder (MD-CNN-AE) (Murata, Fukami & Fukagata, 2020), 
        hierarchical autoencoder (Fukami, Nakamura & fukagata, 2020), 
@@ -11,14 +11,20 @@ Content:
     3. Ranking methods for MD-CNN-AE -- cross entropy, signal energy and contribution.
     4. Two data files from the same wake experiment, downsampled to different sizes. Original data from George Rigas.
 
-Python versions:
+## Python versions:
 
-    python 3.9.7 
-    tensorflow 2.7.0 
-    numpy 1.20.3 
-    matplotlib 3.4.3 
+    - python 3.9.7 
+    - tensorflow 2.7.0 
+    - numpy 1.20.3 
+    - matplotlib 3.4.3 
 
-References:
+## Setting up:
+Create a file '~system.ini' that contains results saving location.
+
+    [system_info]
+    save_location=/home/results_location
+
+## References:
 
 Brunton, S. L. & Kutz, J. N. (2019) Data-Driven Science and Engineering: Machine Learning, Dynamical Systems, and Control. 1st edition. <br>
             &nbsp;&nbsp;&nbsp;&nbsp;Cambridge, UK, Cambridge Univeristy Press. Chapter 7.<br>
