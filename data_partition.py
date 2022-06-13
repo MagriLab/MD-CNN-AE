@@ -6,11 +6,11 @@ Ntrain = 1500 # snapshots for training
 Nval = 632 # sanpshots for validation
 Ntest = 600
 
-SHUFFLE = True # shuffle before splitting into sets, test set is extracted before shuffling
+SHUFFLE = False # shuffle before splitting into sets, test set is extracted before shuffling
 REMOVE_MEAN = True # train on fluctuating velocity
 data_type = 'float32'
 
-save_as = 'training_data_1.h5'
+save_as = 'training_data_unshuffle_1.h5'
 
 read_data_file = './data/PIV4_downsampled_by8.h5'
 Nz = 24 # grid size

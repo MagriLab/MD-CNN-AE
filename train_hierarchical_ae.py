@@ -4,8 +4,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras import backend as K
 
-from MD_AE_tools.models.models import *
-# from MD_AE_tools.models.models_no_bias import *
+# from MD_AE_tools.models.models import *
+from MD_AE_tools.models.models_no_bias import *
 
 import h5py
 import numpy as np
@@ -20,14 +20,14 @@ import datetime
 
 # get system information
 config = configparser.ConfigParser()
-config.read('__system.ini')
+config.read('_system.ini')
 system_info = config['system_info']
 
 # use gpu
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     try:
-        tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+        tf.config.set_visible_devices(gpus[2], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
         logical_gpus = tf.config.list_logical_devices('GPU')
         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
     except RuntimeError as e:
@@ -69,7 +69,7 @@ LOG_WANDB = True
 # initalise weights&biases
 if LOG_WANDB:
     config_wandb = {'features_layers':features_layers,'latent_dim':no_of_modes,'filter_window':filter_window,'batch_size':batch_size, "learning_rate":learning_rate, "dropout":drop_rate, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, 'REMOVE_MEAN':REMOVE_MEAN}
-    run_name = "hierarchical-"+str(no_of_modes)+"-mode"
+    run_name = "hierarchical-"+str(no_of_modes)+"-mode-no-bias"
     run = wandb.init(config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="hierarchical",name=run_name)
 
 #================================= IMPORT DATA ==========================================================
@@ -83,6 +83,7 @@ f_piv = 720.0 # Hz PIV sampling frequency
 dt = 1.0/f_piv 
 
 print('Reading dataset from :' + data_file)
+
 hf = h5py.File(data_file,'r')
 
 z = np.array(hf.get('z'))
@@ -147,10 +148,10 @@ hist_train_full = []
 hist_val_full = []
 
 
-# tempfn = './temp_hierarchical_autoencoder.h5'
-# model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
-# early_cb=EarlyStopping(monitor='val_loss', patience=pat,verbose=1)
-# cb = [model_cb, early_cb]
+tempfn = './temp_hierarchical_autoencoder.h5'
+model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
+early_cb=EarlyStopping(monitor='val_loss', patience=pat,verbose=1)
+cb = [model_cb, early_cb]
 
 input_train = [u_train[0,:,:,:,:]]
 input_val = [u_val[0,:,:,:,:]]
@@ -201,7 +202,7 @@ for i in range(no_of_modes):
     input_test.append(subnets[i].encoder.predict(u_test[0,:,:,:,:]))
 
 # loss_test = subnets[-1].evaluate(input_test[:-1],input_test[:-1])
-loss_test= tf.keras.losses.MeanSquaredError(u_test[0,:,:,:,:],subnets[-1].predict(input_test[:-1]))
+loss_test= tf.keras.losses.MeanSquaredError()(u_test[0,:,:,:,:],subnets[-1].predict(input_test[:-1]))
 
 finish_time = datetime.datetime.now().strftime("%H:%M")
 

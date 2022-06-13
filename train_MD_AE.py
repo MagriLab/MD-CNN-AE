@@ -12,8 +12,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras import backend as K
 
-from MD_AE_tools.models.models import *
-# from MD_AE_tools.models.models_no_bias import *
+# from MD_AE_tools.models.models import *
+from MD_AE_tools.models.models_no_bias import *
 
 import myplot
 
@@ -32,7 +32,7 @@ import wandb
 
 # get system information
 config = configparser.ConfigParser()
-config.read('__system.ini')
+config.read('_system.ini')
 system_info = config['system_info']
 
 # use gpu
@@ -223,7 +223,7 @@ os.mkdir(folder)
 
 finish_time = datetime.datetime.now().strftime("%H:%M")
 
-loss_test= tf.keras.losses.MeanSquaredError(u_test[0,:,:,:,:],y_test)
+loss_test= tf.keras.losses.MeanSquaredError()(u_test[0,:,:,:,:],y_test)
 filename = folder + 'test_summary.txt'
 with open(filename,'w') as f:
     with redirect_stdout(f):
@@ -401,7 +401,7 @@ if LATENT_STATE:
 # plot latent variables
 fig_count = fig_count + 1
 path = folder + 'latent_variables.png'
-plt.figure()
+plt.figure(fig_count)
 plt.plot(coded_test[:,0],label='1')
 plt.plot(coded_test[:,1],label='2')
 plt.legend()

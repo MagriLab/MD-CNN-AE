@@ -13,7 +13,7 @@ import configparser
 
 # get system information
 config = configparser.ConfigParser()
-config.read('__system.ini')
+config.read('_system.ini')
 system_info = config['system_info']
 
 # use gpu

@@ -19,7 +19,7 @@ Mode decomposition with autoencoders.
     - matplotlib 3.4.3 
 
 ## Setting up:
-Create a file '~system.ini' that contains results saving location.
+Create a file '_system.ini' that contains results saving location.
 
     [system_info]
     save_location=/home/results_location
