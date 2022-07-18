@@ -142,7 +142,7 @@ for i in range(8):
 
     config_wandb = {'features_layers':features_layers,'latent_dim':latent_dim,'filter_window':filter_window,'batch_size':batch_size, "learning_rate":learning_rate, "dropout":drop_rate, "activation":act_fct, "regularisation":lmb, "batch_norm":batch_norm, 'REMOVE_MEAN':REMOVE_MEAN}
     run_name = str(latent_dim)+"-mode"
-    run = wandb.init(reinit=True,config=config_wandb,project="MD-CNN-AE",entity="yaxinm",group="MD-CNN-AE",name=run_name)
+    run = wandb.init(reinit=True,config=config_wandb,project="MD-CNN-AE",group="MD-CNN-AE",name=run_name)
 
     hist_train,hist_val,loss_test = create_and_train(u_train,u_val,u_test,Nx,Nu,features_layers,latent_dim,filter_window,act_fct,batch_norm,drop_rate,lmb,batch_size,learning_rate_list,loss,epochs,i)
 
