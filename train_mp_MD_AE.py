@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
 
 from contextlib import redirect_stdout, redirect_stderr
 import multiprocessing as mp
@@ -204,9 +205,10 @@ class Train_MD_AE:
             y_test = np.sum(mode_test,axis=0)
             # test if results are the same
             y_test_one = self.md_ae.predict(np.squeeze(u_test,axis=0))
-            y_train_one = self.md_ae.predict(np.squeeze(u_train,axis=0))
             the_same = np.array_equal(np.array(y_test),np.array(y_test_one))
             print('Are results calculated the two ways the same. ', the_same)
+            mode_train = np.array(mode_train)
+            mode_test = np.array(mode_test)
         else:
             y_train = self.md_ae.predict(np.squeeze(u_train,axis=0))
             y_test = self.md_ae.predict(np.squeeze(u_test,axis=0))
@@ -351,29 +353,23 @@ class Train_MD_AE:
         # plot modes
         if self.LATENT_STATE:
             fig_count = fig_count + 1
-            path = os.path.join(folder_path,'averaged_decomposed_field.png')
-            fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2)
-            mode1_1 = ax1.imshow(np.mean(mode_test,axis=1)[0,:,:,0],'jet')
-            ax1.set_title("Decomposed field 1, v")
-            ax1.set_xticks([])
-            ax1.set_yticks([])
-            fig.colorbar(mode1_1,ax=ax1)
-            mode1_2 = ax2.imshow(np.mean(mode_test,axis=1)[0,:,:,1],'jet')
-            ax2.set_title("Decomposed field 1, w")
-            ax2.set_xticks([])
-            ax2.set_yticks([])
-            fig.colorbar(mode1_2,ax=ax2)
-            mode2_1 = ax3.imshow(np.mean(mode_test,axis=1)[1,:,:,0],'jet')
-            ax3.set_title("Decomposed field 2, v")
-            ax3.set_xticks([])
-            ax3.set_yticks([])
-            fig.colorbar(mode2_1,ax=ax3)
-            mode2_2 = ax4.imshow(np.mean(mode_test,axis=1)[1,:,:,1],'jet')
-            ax4.set_title("Decomposed field 2, w")
-            ax4.set_xticks([])
-            ax4.set_yticks([])
-            fig.colorbar(mode2_2,ax=ax4)
-            plt.suptitle("u and v autoencoder modes")
+            t = 0
+            figname = 'autoencoder mode at time ' + str(t) + '.png'
+            path = os.path.join(folder_path,figname)
+            fig, ax = plt.subplots(2,self.latent_dim,sharey='all')
+            fig.suptitle('autoencoder modes')
+            for u in range(2):
+                for i in range(self.latent_dim):
+                    im = ax[u,i].imshow(mode_train[i,t,:,:,u],'jet')
+                    div = make_axes_locatable(ax[u,i])
+                    cax = div.append_axes('right',size='5%',pad='2%')
+                    plt.colorbar(im,cax=cax)
+                    ax[u,i].set_xticks([])
+                    ax[u,i].set_yticks([])
+            for i in range(self.latent_dim):
+                ax[0,i].set_title(str(i+1))
+            ax[0,0].set_ylabel('v')
+            ax[1,0].set_ylabel('w')
             plt.savefig(path)
         
         # plot latent variables

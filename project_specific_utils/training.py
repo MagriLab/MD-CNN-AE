@@ -27,7 +27,7 @@ def data_partition(data_file:path,
                     partition:list, 
                     SHUFFLE=True, 
                     REMOVE_MEAN=True, 
-                    data_type:dtype=np.float32) -> tuple(np.ndarray, data_tuple, data_tuple, data_tuple):
+                    data_type:dtype=np.float32):
 
     '''Split the experimental data into sets. 
 
@@ -114,7 +114,7 @@ def data_partition(data_file:path,
     return u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test)
 
 
-def read_data(data_file:path) -> tuple(np.ndarray, data_tuple, data_tuple, data_tuple):
+def read_data(data_file:path):
     '''Read a already partitioned data file
     
     Argument:
@@ -189,8 +189,8 @@ def train_autoencder(mdl:Model, data:data_tuple, batch_size:int, epochs:int,
         hist_val = []
         
 
-    model_cb=ModelCheckpoint(save_model_to, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
-    early_cb=EarlyStopping(monitor='val_loss', patience=early_stopping_patience,verbose=1)
+    model_cb=ModelCheckpoint(save_model_to, monitor='loss',save_best_only=True,verbose=1,save_weights_only=True)#'val_loss or loss
+    early_cb=EarlyStopping(monitor='loss', patience=early_stopping_patience,verbose=1)
     cb = [model_cb, early_cb]
 
     hist0 = mdl.fit(np.squeeze(u_train,axis=0), np.squeeze(u_train,axis=0),
