@@ -41,3 +41,32 @@ md_ae.compile(optimizer=Adam(learning_rate=learning_rate_list[0]),loss=loss)
 
 hist_train, hist_val, mse_test = training.train(md_ae,data,batch_size,epochs)
 print(hist_train,hist_val,mse_test)
+
+# # import configparser
+# # a = configparser.ConfigParser()
+# # a.read('_test_config.ini')
+
+
+# # class GetAttr(object):
+# #     def __init__(self, _dict):
+# #         self.__dict__.update(_dict)
+
+
+# # # a = GetAttr(a)
+# # # print(a.a1)
+
+# # def nested(a): # a is two layer nested dict
+# #     dict1 = {}
+# #     a = dict(a)
+# #     for key in a:
+# #         b = dict(a[key])
+# #         b = GetAttr(b)
+# #         dict1.update({key:b})
+# #     dict2 = GetAttr(dict1)
+# #     return dict2
+
+# # dict_nested = nested(a)
+
+# # print(dict_nested.group2.b3)
+
+

@@ -30,10 +30,13 @@ class Encoder(Model):
         input_shape = (self.Nx[0],self.Nx[1],self.Nu)
         self.input_img = Input(shape = input_shape)
 
+        if isinstance(lmb,float):
+            self.lmb = [lmb, lmb]
+
         # define layers
         self.add_layers = []
         for i in range(len(self.features_layers)):
-            self.add_layers.append(Conv2D(self.features_layers[i],self.filter_window, padding='same',kernel_regularizer=l2(self.lmb), bias_regularizer=l2(self.lmb), activation=self.act_fct, use_bias=False))
+            self.add_layers.append(Conv2D(self.features_layers[i],self.filter_window, padding='same',kernel_regularizer=l2(self.lmb[0]), bias_regularizer=l2(self.lmb[1]), activation=self.act_fct, use_bias=False))
             
             if self.batch_norm:
                 self.add_layers.append(BatchNormalization())
@@ -41,7 +44,7 @@ class Encoder(Model):
             self.add_layers.append(MaxPool2D(pool_size=(2,2), padding='same'))
             self.add_layers.append(Dropout(self.drop_rate))
 
-        self.dense = Dense(self.latent_dim,kernel_regularizer=l2(self.lmb), bias_regularizer=l2(self.lmb), activation=self.act_fct, use_bias=False)
+        self.dense = Dense(self.latent_dim,kernel_regularizer=l2(self.lmb[0]), bias_regularizer=l2(self.lmb[1]), activation=self.act_fct, use_bias=False)
         self.last_dropout = Dropout(self.drop_rate)
         
         # define model
@@ -87,26 +90,29 @@ class Decoder(Model):
         self.lmb = lmb
         self.resize_meth = resize_meth
 
+        if isinstance(lmb,float):
+            self.lmb = [lmb, lmb]
+
         prelatent_size = np.prod(self.layer_size[-1],initial=self.features_layers[-1])
         # prelatent_size = np.prod(self.layer_size[-1])
 
         self.add_layers = [] # store layers
 
-        self.add_layers.append(Dense(prelatent_size,kernel_regularizer=l2(lmb), bias_regularizer=l2(lmb), activation=act_fct, use_bias=False)) # restore the number of elements in the layer before the latent space
+        self.add_layers.append(Dense(prelatent_size,kernel_regularizer=l2(self.lmb[0]), bias_regularizer=l2(self.lmb[1]), activation=act_fct, use_bias=False)) # restore the number of elements in the layer before the latent space
         if self.batch_norm:
             self.add_layers.append(BatchNormalization())
         self.add_layers.append(Dropout(self.drop_rate))
         self.add_layers.append(Reshape((self.layer_size[-1][0],self.layer_size[-1][1],self.features_layers[-1])))
         for i in range(len(self.features_layers)-1):
             self.add_layers.append(ResizeImages((self.layer_size[-i-2]),self.resize_meth))
-            self.add_layers.append(Conv2D(self.features_layers[-i-2],self.filter_window, padding='same',kernel_regularizer=l2(self.lmb), bias_regularizer=l2(self.lmb), activation=self.act_fct, use_bias=False))
+            self.add_layers.append(Conv2D(self.features_layers[-i-2],self.filter_window, padding='same',kernel_regularizer=l2(self.lmb[1]), bias_regularizer=l2(self.lmb[0]), activation=self.act_fct, use_bias=False))
             if self.batch_norm:
                 self.add_layers.append(BatchNormalization())
 
             self.add_layers.append(Dropout(self.drop_rate))
 
         self.add_layers.append(ResizeImages((self.Nx[0],self.Nx[1]),self.resize_meth)) 
-        self.add_layers.append(Conv2D(self.Nu,self.filter_window, padding='same',kernel_regularizer=l2(self.lmb), bias_regularizer=l2(self.lmb), activation='linear', use_bias=False)) # last layer
+        self.add_layers.append(Conv2D(self.Nu,self.filter_window, padding='same',kernel_regularizer=l2(self.lmb[0]), bias_regularizer=l2(self.lmb[1]), activation='linear', use_bias=False)) # last layer
 
         # define input shape
         input_shape = (self.latent_dim,) 

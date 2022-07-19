@@ -14,9 +14,11 @@ import sys
 from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import ModelCheckpoint,EarlyStopping
 from tensorflow.keras.losses import MeanSquaredError as mse
+import datetime
 
 path = typing.Union[str,pathlib.Path]
 dtype = typing.Union[str,np.dtype]
+data_tuple = tuple[np.ndarray]
 
 
 
@@ -25,7 +27,7 @@ def data_partition(data_file:path,
                     partition:list, 
                     SHUFFLE=True, 
                     REMOVE_MEAN=True, 
-                    data_type:dtype=np.float32) -> np.ndarray:
+                    data_type:dtype=np.float32) -> tuple(np.ndarray, data_tuple, data_tuple, data_tuple):
 
     '''Split the experimental data into sets. 
 
@@ -35,6 +37,7 @@ def data_partition(data_file:path,
         partition: a list giving the number of snapshots for each set [training, validation, testing]
         SHUFFLE: if the data is shuffled before being split into sets. The testing data will never not be shuffled (all snapshots are in sequence).
         REMOVE_MEAN: if True, return fluctuating velocity.
+        data_type: dtype to cast the data into
     Return:
         u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test)
 
@@ -111,10 +114,49 @@ def data_partition(data_file:path,
     return u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test)
 
 
-def train_autoencder(mdl:Model, data:tuple, batch_size:int, epochs:int, 
+def read_data(data_file:path) -> tuple(np.ndarray, data_tuple, data_tuple, data_tuple):
+    '''Read a already partitioned data file
+    
+    Argument:
+        data_file: path to a .h5 file containing a set of already partitioned data
+
+    Return:
+        np.ndarray or tuples of np.ndarray
+        u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test)
+    '''
+    hf = h5py.File(data_file,'r')
+
+    SHUFFLE = hf.get('SHUFFLE')[()]
+    REMOVE_MEAN = hf.get('REMOVE_MEAN')[()]
+
+    u_all = np.array(hf.get('u_all'))
+    u_train = np.array(hf.get('u_train'))
+    u_val = np.array(hf.get('u_val'))
+    u_test = np.array(hf.get('u_test'))
+    if SHUFFLE:
+        idx_test = np.array(hf.get('idx_test')).tolist()
+        idx_unshuffle = np.array(hf.get('idx_unshuffle')).tolist()
+    else:
+        idx_test = None
+        idx_unshuffle = None
+    if REMOVE_MEAN:
+        u_mean_all = np.array(hf.get('u_mean_all'))
+        u_mean_train = np.array(hf.get('u_mean_train'))
+        u_mean_val = np.array(hf.get('u_mean_val'))
+        u_mean_test = np.array(hf.get('u_mean_test'))
+    else:
+        u_mean_all = None
+        u_mean_train = None
+        u_mean_val = None
+        u_mean_test = None
+    hf.close()
+    return u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test)
+
+
+def train_autoencder(mdl:Model, data:data_tuple, batch_size:int, epochs:int, 
             early_stopping_patience:int=100, 
             save_model_to:path='./temp_md_autoencoder.h5', 
-            history:tuple=None):
+            history:data_tuple=None):
 
     '''Train a tensorflow autoencoder 
 
@@ -133,6 +175,7 @@ def train_autoencder(mdl:Model, data:tuple, batch_size:int, epochs:int,
         hist_val: a list of validation losses
         mse_test: mean squared error of u_test and predicted u_test
     '''
+    start_time = datetime.datetime.now().strftime("%H:%M")
 
     u_train = data[0] # unpack data
     u_val = data[1]
@@ -162,5 +205,8 @@ def train_autoencder(mdl:Model, data:tuple, batch_size:int, epochs:int,
     hist_val.extend(hist0.history['val_loss'])
     mse_test= mse()(np.squeeze(u_test,axis=0), mdl.predict(np.squeeze(u_test,axis=0))).numpy()
 
-    return hist_train, hist_val, mse_test
+    finish_time = datetime.datetime.now().strftime("%H:%M")
+    time_info = [start_time,finish_time]
+
+    return hist_train, hist_val, mse_test, time_info
 
