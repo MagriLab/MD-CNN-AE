@@ -69,7 +69,7 @@ class Train_MD_AE:
     def import_config(self,training_param:configparser.ConfigParser) -> None:
         self.LATENT_STATE = training_param['training'].getboolean('LATENT_STATE')
         self.SHUFFLE = training_param['training'].getboolean('SHUFFLE')
-        self.REMOVE_MEAN = training_param['training'].getboolean('TRUE')
+        self.REMOVE_MEAN = training_param['training'].getboolean('REMOVE_MEAN')
         self.nb_epoch = training_param['training'].getint('nb_epoch')
         self.batch_size = training_param['training'].getint('batch_size')
         self.learning_rate = training_param['training'].getfloat('learning_rate')
@@ -118,8 +118,8 @@ class Train_MD_AE:
                 # Visible devices must be set before GPUs have been initialized
                 print(e)
     
-    def set_save_location(self,system_save_path:strorpath, ident:int=mp.current_process().ident) -> strorpath:
-        folder_name = self.folder_prefix + str(ident)
+    def set_save_location(self,system_save_path:strorpath, folder_suffix:str) -> strorpath:
+        folder_name = self.folder_prefix + folder_suffix
         parent_folder = os.path.join(system_save_path,self.save_to)
         folder_path = os.path.join(system_save_path,self.save_to,folder_name)
         if not os.path.exists(os.path.join(system_save_path,self.save_to)):
@@ -145,7 +145,7 @@ class Train_MD_AE:
                             resize_meth=self.resize_meth)
         self.md_ae.compile(optimizer=Adam(learning_rate=self.learning_rate),loss=self.loss)
 
-    def set_wandb(self,ident:int=mp.current_process().ident) -> None:
+    def set_wandb(self,suffix:str) -> None:
         if self.LOG_WANDB:
             config_wandb = {'features_layers':self.features_layers,
                     'latent_dim':self.latent_dim,
@@ -157,7 +157,7 @@ class Train_MD_AE:
                     "regularisation":self.lmb, 
                     "batch_norm":self.BATCH_NORM, 
                     'REMOVE_MEAN':self.REMOVE_MEAN}
-            run_name = str(self.latent_dim)+"-mode-"+str(ident)
+            run_name = str(self.latent_dim)+"-mode-"+suffix
             self.run = wandb.init(config=config_wandb,project=self.project_name,group=self.group_name,name=run_name)
 
     def log_wandb(self, hist_train:np.ndarray, hist_val:np.ndarray, mse_test:np.ndarray) -> None:
@@ -221,7 +221,12 @@ class Train_MD_AE:
     
 
 
-    def post_processing(self, folder_path:strorpath, data:data_tuple, data_mean:data_tuple, coded:data_tuple, mode_packed:data_tuple, u_all:np.ndarray, data_shuffle:data_tuple, y:data_tuple, hist:data_tuple) -> None:
+    def post_processing(self, 
+                        folder_path:strorpath, 
+                        data:data_tuple, 
+                        data_mean:data_tuple, coded:data_tuple, 
+                        mode_packed:data_tuple, u_all:np.ndarray, 
+                        data_shuffle:data_tuple, y:data_tuple, hist:data_tuple) -> None:
         '''Post processing results
         
         Save results and plots to the given folder.
@@ -276,12 +281,12 @@ class Train_MD_AE:
         # save results
         filename = os.path.join(folder_path,'results.h5')
         hf = h5py.File(filename,'w')
-        hf.create_dataset('u_all',data=u_all[0,:,:,:,:])
+        hf.create_dataset('u_all',data=u_all)
         hf.create_dataset('hist_train',data=np.array(hist_train))
         hf.create_dataset('hist_val',data=hist_val)
-        hf.create_dataset('u_train',data=u_train[0,:,:,:,:]) #u_train_fluc before
-        hf.create_dataset('u_val',data=u_val[0,:,:,:,:])
-        hf.create_dataset('u_test',data=u_test[0,:,:,:,:])
+        hf.create_dataset('u_train',data=u_train) 
+        hf.create_dataset('u_val',data=u_val)
+        hf.create_dataset('u_test',data=u_test)
         hf.create_dataset('y_test',data=y_test)
         hf.create_dataset('y_train',data=y_train)
         if self.REMOVE_MEAN:
@@ -383,6 +388,41 @@ class Train_MD_AE:
         plt.title("Testing autoencoder")
         plt.savefig(path)
 
+        fig_count = fig_count + 1
+        path = os.path.join(folder_path,'decoder weights.png')
+        decoders = self.md_ae.get_decoders()
+        b1 = decoders[0].predict(np.reshape(0,(1,1)))
+        wb1 = decoders[0].predict(np.reshape(1,(1,1)))
+        w1 = wb1-b1
+        b2 = decoders[1].predict(np.reshape(0,(1,1)))
+        wb2 = decoders[1].predict(np.reshape(1,(1,1)))
+        w2 = wb2-b2
+        fig, ax = plt.subplots(2,2,sharey='all')
+        fig.suptitle('decoder weights')
+        im1v = ax[0,0].imshow(w1[0,:,:,0],'jet')
+        div = make_axes_locatable(ax[0,0])
+        cax = div.append_axes('right',size='5%',pad='2%')
+        plt.colorbar(im1v,cax=cax)
+        im1w = ax[1,0].imshow(w1[0,:,:,1],'jet')
+        div = make_axes_locatable(ax[1,0])
+        cax = div.append_axes('right',size='5%',pad='2%')
+        plt.colorbar(im1w,cax=cax)
+        im2v = ax[0,1].imshow(w2[0,:,:,0],'jet')
+        div = make_axes_locatable(ax[0,1])
+        cax = div.append_axes('right',size='5%',pad='2%')
+        plt.colorbar(im2v,cax=cax)
+        im2w = ax[1,1].imshow(w2[0,:,:,1],'jet')
+        div = make_axes_locatable(ax[1,1])
+        cax = div.append_axes('right',size='5%',pad='2%')
+        plt.colorbar(im2w,cax=cax)
+        ax[0,0].set_title('1')
+        ax[0,1].set_title('2')
+        ax[0,0].set_ylabel('v')
+        ax[1,0].set_ylabel('w')
+        plt.savefig(path)
+
+
+
 
 
 
@@ -390,19 +430,19 @@ def run_job(train_id):
     '''train one autoencoder'''
     gpu_id = queue.get() # get the next available gpu
 
-    ident = mp.current_process().ident
+    suffix = str(train_id) + '-' + str(mp.current_process().ident)
 
     try:
         training_file = jobs[train_id]
         tempfn = './temp_md_autoencoder'+str(train_id)+'.h5'
         print('Running job No.%i, PID %i, from file %s, on gpu %i.'%(
-                    train_id,ident,training_file,gpu_id))
+                    train_id,mp.current_process().ident,training_file,gpu_id))
 
         # initiate job
         job = Train_MD_AE(training_file, gpu_id)
 
         # save everything to this folder
-        folder_path = job.set_save_location(system_info['alternate_location'],ident) 
+        folder_path = job.set_save_location(system_info['alternate_location'],suffix) 
         # save the configuration
         copyfile(training_file,os.path.join(folder_path,'training_param.ini'))
 
@@ -418,7 +458,7 @@ def run_job(train_id):
 
             # start training
             job.make_model()
-            job.set_wandb(ident)
+            job.set_wandb(suffix)
             hist_train, hist_val, mse_test, time_info = job.train(temp_file=tempfn,data=data)
             job.log_wandb(hist_train,hist_val,mse_test)
             print('\nTraining started at ', time_info[0], ', finished at ',time_info[1],'.')
