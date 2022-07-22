@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-from project_specific_utils.training import data_partition
+from project_specific_utils.data_and_train import data_partition
 
 # =========================== Change these values ============================
 Ntrain = 1500 # snapshots for training
