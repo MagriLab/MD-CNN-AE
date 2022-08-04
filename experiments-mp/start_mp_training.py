@@ -2,9 +2,6 @@ import sys
 sys.path.append('..')
 import tensorflow as tf
 
-import matplotlib
-matplotlib.use('agg')
-
 import multiprocessing as mp
 import datetime
 import os

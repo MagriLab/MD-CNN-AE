@@ -37,7 +37,8 @@ def data_partition(data_file:StrOrPath,
                     partition:list, 
                     SHUFFLE=True, 
                     REMOVE_MEAN=True, 
-                    data_type:dtype=np.float32):
+                    data_type:dtype=np.float32,
+                    rng:typing.Optional[np.random.Generator]=None):
 
     '''Split the experimental data into sets. 
 
@@ -48,6 +49,7 @@ def data_partition(data_file:StrOrPath,
         SHUFFLE: if the data is shuffled before being split into sets. The testing data will never not be shuffled (all snapshots are in sequence).
         REMOVE_MEAN: if True, return fluctuating velocity.
         data_type: dtype to cast the data into
+        rng: numpy random number generator
     Return:
         u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test)
 
@@ -79,11 +81,17 @@ def data_partition(data_file:StrOrPath,
     u_all = ei.rearrange(u_all,'nt nz ny nu -> nt ny nz nu') #shape of u_all = (Nt,Ny,Nz,Nu)
 
     if SHUFFLE:
-        idx_test = np.random.randint(0,Nt-Ntest)
+        if rng is not None:
+            idx_test = rng.integers(0,Nt-Ntest)
+        else:
+            idx_test = np.random.randint(0,Nt-Ntest)
         u_test = u_all[idx_test:idx_test+Ntest,:,:,:] # test set needs to be in order and has continuous snapshots
         u_all = np.delete(u_all,np.s_[idx_test:idx_test+Ntest],0) # remove the test set from available samples
         idx_shuffle = np.arange(Nt-Ntest) # use idx_shuffle to shuffle the rest of samples before taking a validation set
-        np.random.shuffle(idx_shuffle)
+        if rng is not None:
+            rng.shuffle(idx_shuffle)
+        else:
+            np.random.shuffle(idx_shuffle)
         idx_unshuffle = np.argsort(idx_shuffle) # use idx_unshuffle to unshuffle the data
         u_all = u_all[idx_shuffle,:,:,:]
         u_train = u_all[0:Ntrain,:,:,:]
@@ -133,23 +141,33 @@ def read_data(data_file:StrOrPath):
     Return:
         np.ndarray or tuples of np.ndarray
         u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test)
+        data_info: dictionary containing basic information of the dataset
     '''
+    data_info ={}
+
     hf = h5py.File(data_file,'r')
 
-    SHUFFLE = hf.get('SHUFFLE')[()]
-    REMOVE_MEAN = hf.get('REMOVE_MEAN')[()]
+    data_info["SHUFFLE"] = hf.get('SHUFFLE')[()]
+    data_info["REMOVE_MEAN"] = hf.get('REMOVE_MEAN')[()]
+    data_info["Ntrain"] = hf.get('Ntrain')[()]
+    data_info["Nval"] = hf.get('Nval')[()]
+    data_info["Ntest"] = hf.get('Ntest')[()]
+    data_info["Nz"] = hf.get('Nz')[()]
+    data_info["Ny"] = hf.get('Ny')[()]
+    data_info["Nu"] = hf.get('Nu')[()]
+    data_info["Nt"] = hf.get('Nt')[()]
 
     u_all = np.array(hf.get('u_all'))
     u_train = np.array(hf.get('u_train'))
     u_val = np.array(hf.get('u_val'))
     u_test = np.array(hf.get('u_test'))
-    if SHUFFLE:
+    if data_info["SHUFFLE"]:
         idx_test = np.array(hf.get('idx_test')).tolist()
         idx_unshuffle = np.array(hf.get('idx_unshuffle')).tolist()
     else:
         idx_test = None
         idx_unshuffle = None
-    if REMOVE_MEAN:
+    if data_info["REMOVE_MEAN"]:
         u_mean_all = np.array(hf.get('u_mean_all'))
         u_mean_train = np.array(hf.get('u_mean_train'))
         u_mean_val = np.array(hf.get('u_mean_val'))
@@ -160,7 +178,7 @@ def read_data(data_file:StrOrPath):
         u_mean_val = None
         u_mean_test = None
     hf.close()
-    return u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test)
+    return u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test), data_info
 
 
 def train_autoencder(mdl:Model, 
@@ -180,7 +198,7 @@ def train_autoencder(mdl:Model,
         data: (u_train, u_val, u_test)
         batch_size: size of each batch
         epochs: number of epochs
-        early_stopping_patience: pat for early stopping
+        callbacks: a list of keras callback
         save_model_to: '.h5' file to save the weights
         history: tupe of lists (hist_train, hist_val). Use empty lists if not given
     Returns:
@@ -251,10 +269,10 @@ def set_gpu(gpu_id, memory_limit:typing.Optional[int]=None, MEMORY_GROWTH=False)
 class TrainNN_from_config:
     '''Train a network from the .ini config file. 
     
-    To complete training, the child class need methods;
-        1. make_model: make and compile a tensorflow model
-        2. train_model: train the tensorflow model
-        3. log_wandb: log information with wandb
+    To complete training, the child class need methods; \n
+        1. make_model: make and compile a tensorflow model \n
+        2. train_model: train the tensorflow model \n
+        3. log_wandb: log information with wandb \n
     '''
     def __init__(self, training_file:StrOrPath, gpu_id:typing.Optional[int]=None) -> None:
         # import parameters as class attribute
@@ -339,6 +357,8 @@ class TrainNN_from_config:
     
     def get_data(self) -> np.ndarray:
         '''Read data from file
+
+        If the data file given is already partitioned, the class attribute will be \n modified by the data file. 
         
         Return:
             u_all, (u_train, u_val, u_test), (idx_test, idx_unshuffle), (u_mean_all, u_mean_train, u_mean_val, u_mean_test). 
@@ -354,5 +374,16 @@ class TrainNN_from_config:
                                 REMOVE_MEAN=self.REMOVE_MEAN,
                                 data_type=self.data_type)
         else:
-            u_all, data, data_shuffle, data_mean = read_data(self.read_data_file)
+            u_all, data, data_shuffle, data_mean, data_info = read_data(self.read_data_file)
+            self.SHUFFLE = data_info["SHUFFLE"]
+            self.REMOVE_MEAN = data_info["REMOVE_MEAN"]
+            self.Ntrain = data_info["Ntrain"]
+            self.Nval = data_info["Nval"]
+            self.Ntest = data_info["Ntest"]
+            self.Nz = data_info["Nz"]
+            self.Ny = data_info["Ny"]
+            self.Nu = data_info["Nu"]
+            self.Nt = data_info["Nt"]
+            self.Nx = [self.Ny,self.Nz]
+
         return u_all, data, data_shuffle, data_mean

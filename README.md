@@ -19,7 +19,7 @@ Mode decomposition with autoencoders.
     - matplotlib 3.4.3 
 
 ## Setting up:
-Create a file **_system.ini** that contains results saving location.
+Create a file **_system.ini** that contains results saving location. Example config files are available in *examples/config_files/*
 
     [system_info]
     save_location=/home/results_location # required, training results will be saved at this location
@@ -27,7 +27,9 @@ Create a file **_system.ini** that contains results saving location.
 
 ### For running experiments with multiprocessing script
 
-Create a file **_train_mp.ini** and save it in the same directory as **train_mp_MD_AE.py**. See *examples/config_files*.
+Create a config file using the template **examples/config_files/_train_md_ae.ini**. 
+Create a file **_train_mp.ini** and save it in *experiments-mp*. See **examples/config_files/_train_mp.ini**. Specify the config file and python file to run as shown in the example. 
+Run **start_mp_training.py**
 
 ## References:
 

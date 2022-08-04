@@ -14,6 +14,7 @@ from tensorflow.keras import backend as K
 
 # from MD_AE_tools.models.models import *
 from MD_AE_tools.models.models_no_bias import *
+from project_specific_utils.md_cnn_ae import plot_autoencoder_modes, plot_decoder_weights
 
 import myplot
 
@@ -61,21 +62,21 @@ SHUFFLE = True # shuffle before splitting into sets, test set is extracted befor
 REMOVE_MEAN = True # train on fluctuating velocity
 
 ## ae configuration
-lmb = 0.001 #1e-05 #regulariser
-drop_rate = 0.2
+lmb = [0.001,0.0] #1e-05 #regulariser
+drop_rate = 0.0
 features_layers = [32, 64, 128]
-latent_dim = 10
+latent_dim = 2
 act_fct = 'tanh'
 resize_meth = 'bilinear'
-filter_window= (3,3)
-batch_norm = True
+filter_window= (5,5)
+batch_norm = False
 
 ## training
-nb_epoch = 500
-batch_size = 100
-learning_rate = 0.001
-learning_rate_list = [learning_rate,learning_rate/10,learning_rate/100] #[0.001,0.0001,0.00001]
-LOG_WANDB = True # record loss with weights and biases
+nb_epoch = 3000
+batch_size = 500
+learning_rate = 0.002
+learning_rate_list = [learning_rate,learning_rate,learning_rate] #[0.001,0.0001,0.00001]
+LOG_WANDB = False # record loss with weights and biases
 
 # initalise weights&biases
 if LOG_WANDB:
@@ -154,14 +155,14 @@ print(md_ae.summary())
 
 #================================================ TRAINING ==========================================
 md_ae.compile(optimizer=Adam(learning_rate=learning_rate),loss='mse') # or use tf.keras.losses.MeanAbsoluteError()
-pat = 100 # patience for EarlyStopping
+pat = 200 # patience for EarlyStopping
 
 # Early stopping
 hist_train = []
 hist_val = []
 tempfn = './temp_md_autoencoder.h5'
-model_cb=ModelCheckpoint(tempfn, monitor='val_loss',save_best_only=True,verbose=1,save_weights_only=True)
-early_cb=EarlyStopping(monitor='val_loss', patience=pat,verbose=1)
+model_cb=ModelCheckpoint(tempfn, monitor='loss',save_best_only=True,verbose=1,save_weights_only=True)
+early_cb=EarlyStopping(monitor='loss', patience=pat,verbose=1)
 cb = [model_cb, early_cb]
 
 # Training
@@ -305,17 +306,17 @@ if LOG_WANDB:
 #=================================== PLOT ==============================================
 fig_count = 0
 
-# training history
-path = folder + 'training_history.png'
-fig_count = fig_count + 1
-plt.figure(fig_count)
-plt.plot(hist_train,label="training")
-plt.plot(hist_val,label="validation")
-plt.title("Training autoencoder")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.legend()
-plt.savefig(path)
+# # training history
+# path = folder + 'training_history.png'
+# fig_count = fig_count + 1
+# plt.figure(fig_count)
+# plt.plot(hist_train,label="training")
+# plt.plot(hist_val,label="validation")
+# plt.title("Training autoencoder")
+# plt.xlabel("Epoch")
+# plt.ylabel("Loss")
+# plt.legend()
+# plt.savefig(path)
 
 # find mean absolute error
 # if REMOVE_MEAN:
@@ -337,9 +338,9 @@ plt.savefig(path)
 # vmin = min(np.amin(u_mean[:,:,1]),np.amin(y_mean[:,:,1]))
 # vmax = max(np.amax(u_mean[:,:,1]),np.amax(y_mean[:,:,1]))
 
-fig_count = fig_count + 1
-path = folder + 'autoencoder_results.png'
-myplot.plot_ae_results(u_test[0,:,:,:,:],y_test,u_mean_all,error='mse',savefig=True,path=path)
+# fig_count = fig_count + 1
+# path = folder + 'autoencoder_results.png'
+# myplot.plot_ae_results(u_test[0,:,:,:,:],y_test,u_mean_all,error='mse',savefig=True,path=path)
 
 # ax1 = plt.subplot(2,3,1,title="True",xticks=[],yticks=[],ylabel='v')
 # ax1 = plt.imshow(u_mean[:,:,0],'jet',vmin=umin,vmax=umax)
@@ -366,48 +367,52 @@ myplot.plot_ae_results(u_test[0,:,:,:,:],y_test,u_mean_all,error='mse',savefig=T
 # plt.colorbar()
 # plt.savefig(path)
 
-# plot modes
-if LATENT_STATE:
-    fig_count = fig_count + 1
-    path = folder + 'averaged_decomposed_field.png'
-    fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2)
+# # plot modes
+# if LATENT_STATE:
+#     fig_count = fig_count + 1
+#     path = folder + 'averaged_decomposed_field.png'
+#     fig,((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2)
 
-    mode1_1 = ax1.imshow(np.mean(mode_test,axis=1)[0,:,:,0],'jet')
-    ax1.set_title("Decomposed field 1, v")
-    ax1.set_xticks([])
-    ax1.set_yticks([])
-    fig.colorbar(mode1_1,ax=ax1)
+#     mode1_1 = ax1.imshow(np.mean(mode_test,axis=1)[0,:,:,0],'jet')
+#     ax1.set_title("Decomposed field 1, v")
+#     ax1.set_xticks([])
+#     ax1.set_yticks([])
+#     fig.colorbar(mode1_1,ax=ax1)
 
-    mode1_2 = ax2.imshow(np.mean(mode_test,axis=1)[0,:,:,1],'jet')
-    ax2.set_title("Decomposed field 1, w")
-    ax2.set_xticks([])
-    ax2.set_yticks([])
-    fig.colorbar(mode1_2,ax=ax2)
+#     mode1_2 = ax2.imshow(np.mean(mode_test,axis=1)[0,:,:,1],'jet')
+#     ax2.set_title("Decomposed field 1, w")
+#     ax2.set_xticks([])
+#     ax2.set_yticks([])
+#     fig.colorbar(mode1_2,ax=ax2)
 
-    mode2_1 = ax3.imshow(np.mean(mode_test,axis=1)[1,:,:,0],'jet')
-    ax3.set_title("Decomposed field 2, v")
-    ax3.set_xticks([])
-    ax3.set_yticks([])
-    fig.colorbar(mode2_1,ax=ax3)
+#     mode2_1 = ax3.imshow(np.mean(mode_test,axis=1)[1,:,:,0],'jet')
+#     ax3.set_title("Decomposed field 2, v")
+#     ax3.set_xticks([])
+#     ax3.set_yticks([])
+#     fig.colorbar(mode2_1,ax=ax3)
 
-    mode2_2 = ax4.imshow(np.mean(mode_test,axis=1)[1,:,:,1],'jet')
-    ax4.set_title("Decomposed field 2, w")
-    ax4.set_xticks([])
-    ax4.set_yticks([])
-    fig.colorbar(mode2_2,ax=ax4)
-    plt.suptitle("u and v autoencoder modes")
-    plt.savefig(path)
+#     mode2_2 = ax4.imshow(np.mean(mode_test,axis=1)[1,:,:,1],'jet')
+#     ax4.set_title("Decomposed field 2, w")
+#     ax4.set_xticks([])
+#     ax4.set_yticks([])
+#     fig.colorbar(mode2_2,ax=ax4)
+#     plt.suptitle("u and v autoencoder modes")
+#     plt.savefig(path)
 
-# plot latent variables
-fig_count = fig_count + 1
-path = folder + 'latent_variables.png'
-plt.figure(fig_count)
-plt.plot(coded_test[:,0],label='1')
-plt.plot(coded_test[:,1],label='2')
-plt.legend()
-plt.ylabel('value of latent variable')
-plt.title("Testing autoencoder")
-plt.savefig(path)
+# # plot latent variables
+# fig_count = fig_count + 1
+# path = folder + 'latent_variables.png'
+# plt.figure(fig_count)
+# plt.plot(coded_test[:,0],label='1')
+# plt.plot(coded_test[:,1],label='2')
+# plt.legend()
+# plt.ylabel('value of latent variable')
+# plt.title("Testing autoencoder")
+# plt.savefig(path)
+
+
+plot_autoencoder_modes(latent_dim,np.array(mode_train),t=0,savefig=True,folder_path=folder)
+# plot_decoder_weights(act_fct,decoders,savefig=True,folder_path=folder)
 
 
 print("Started at ", start_time)
