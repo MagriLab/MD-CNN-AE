@@ -2,6 +2,9 @@
 from time import time
 import numpy as np
 import sys
+import typing
+
+StrOrArray = typing.Union[str,np.array]
 
 # Performs DMD
 # reference: Brunton, S. L. & Kutz, J. N. (2019) Data-Driven Science and Engineering: Machine Learning, Dynamical Systems, and Control . 1st edition. Cambridge, UK, Cambridge Univeristy Press. Chapter 7.
@@ -25,7 +28,7 @@ class DMD:
     # get_modes(): returns modes, lambda and amplitude
     # get_frequency(dt=1): dt is the interval between snapshots. Returns the rate of growth/decay and the corresponding physical frequency. 
     # get_amplitude(): returns |b|, which is the contribution of each mode
-    def __init__(self,X,Xprime,r,keep_shape=False):
+    def __init__(self, X:np.array, Xprime:np.array, r:int, keep_shape=False):
         self.r = r
         self.keep_shape = keep_shape
 
@@ -93,19 +96,19 @@ class DMD:
 # calculate POD modes, contains a reconstruction function
 # Originally a matlab script
 class POD:
-    # Input:
-    # X: data array, the last dimension must be time
-    # method: 'auto' will select the method base on the size of the data matrix. 
-    #       'classic' is suitable for when Nx < Nt
-    #       'snapshot' is suitable for when Nx > Nt
-    # weight: weight applied to each snapshot
-    # keep_shape: if true, the returned matrix 'self.modes' will have the same spatial dimension as the data matrix X
-    #       example X has shape (2,3,2,10), then self.modes will have shape (2,3,2,modes)
+    '''Performs POD for a data matrix.
+
+    Initiation this class will calculate POD for the data matrix.
     
+    Methods:
+        reconstruct: reconstruct the data with the specified number of POD modes.
+        get_modes: returns modes and eigenvalues.
+        get_time_coefficient: returns the time coefficients
+    '''
     # Attributes:
     # self.nt: number of snapshots
-    # self.Q: reshaped X'
-    # self.Q_mean: time averaged X
+    # self.Q: reshaped X', has shape [nx,nt]
+    # self.Q_mean: time averaged X, has shape [nx,nt]
     # self.typePOD: which method to use
     # self.Phi: eigenvectors Phi
     # self.modes: matrix of POD modes
@@ -114,12 +117,18 @@ class POD:
     # self.nx: total number of grid points
     # self.w: weights
     # self.grid_shape: the shape of the grid
-
-    # Methods:
-    # reconstruct(Q_mean,Q,Phi,number_of_modes,t,shape='self'): use this to reconstruct a snapshot at time t with chosen number of modes. 
-    # get_modes(): returns modes and eigenvalues.
     
-    def __init__(self,X,method='auto',weight='ones',keep_shape=False):
+    def __init__(self, X:np.array, method:str='auto', weight:StrOrArray='ones', keep_shape:bool=False):
+        '''
+        Arguments:
+
+        X: data tensor, the last dimension must be time.
+        method: default 'auto' will select the method base on the size of the data matrix. 
+                'classic' is recommended for when Nx < Nt.
+                'snapshot' is recommended for when Nx > Nt.
+        weight: select weights that are applied to each snapshot, or pass an numpy array as weights.
+        keep_shape: if True, the POD modes will be reshaped to the spatial dimension of the input data X. For example X has shape (2,3,2,10), then self.modes will have shape (2,3,2,modes)
+        '''
         self.method = method
         self.weight = weight
         self.keep_shape = keep_shape
@@ -154,8 +163,19 @@ class POD:
         if self.keep_shape:
             self.restore_shape()
 
+    @staticmethod
+    def prepare_data(X:np.array):
+        '''Prepare the data for decomposition.
+        
+        Data is reshaped into [nx, nt], mean is removed.
 
-    def prepare_data(self,X):
+        Returns:
+        nx: number of data points
+        nt: number of snapshots
+        grid_shape: the shape of the input (original data)
+        Q: fluctuating velocity with shape [nx, nt]
+        Q_mean: mean velocity with length [nx]
+        '''
         Q = np.copy(X)
         grid_shape = list(Q.shape[:-1])
         nt = Q.shape[-1]
@@ -173,10 +193,21 @@ class POD:
     def set_weight(self):
         if self.weight == 'ones':
             weights = np.ones((self.nx,1))
+        elif isinstance(self.weight, np.array):
+            weights = self.weights
+        else:
+            raise ValueError('Choose weights from available options or provide a numpy array.')
         return weights
 
     
-    def classic_POD(self,Q):
+    def classic_POD(self, Q:np.array):
+        '''Calculate POD using the classic method.
+        
+        Suitable for when number of snapshots is larger than the number of data points.
+
+        Arguments:
+            Q: np.array of fluctuating velocity, with shape [nx,nt], where nx is the number of data points and nt is the number of snapshots.
+        '''
         C = Q @ ((Q.T)*(self.w.T))/(self.nt-1) # 2-point spatial correlation tesnsor: Q*Q'
         # print('C is Hermitian?',np.allclose(C,np.conj(C.T)))
         lam,Phi = np.linalg.eigh(C) # right eigenvectors and eigenvalues
@@ -191,7 +222,14 @@ class POD:
         return Q_POD, lam, Phi
     
     
-    def snapshot_POD(self,Q):
+    def snapshot_POD(self, Q:np.array):
+        '''Calculate POD using the snapshot method.
+        
+        Suitable for when number of snapshots is smaller than the number of data points.
+
+        Arguments:
+            Q: np.array of fluctuating velocity, with shape [nx,nt], where nx is the number of data points and nt is the number of snapshots.
+        '''
         C = (Q.T) @ (Q*self.w)/(self.nt-1) # 2-point temporal correlation tesnsor: Q'*Q 
         lam,Phi = np.linalg.eigh(C)
         idx = np.argsort(np.abs(lam)) # sort
@@ -204,14 +242,26 @@ class POD:
 
 
     def restore_shape(self):
+        ''' Reshape self.modes into the shape of the input data.'''
         original_shape = self.grid_shape.copy()
         original_shape.extend([-1])
         self.modes = np.reshape(self.modes,original_shape)
 
-    def reconstruct(self,number_of_modes,Q_mean='self',Q='self',Phi='self',shape='self'):
-        # Input: 
-        # shape: reshape the reconstructed vector into this shape, if not given the result is reshaped to self.grid_shape
-        # If any of 'Q_mean', 'Q', or 'Phi' is not given, the method uses the values stored in self
+    def reconstruct(self, number_of_modes:int ,
+                    Q_mean:StrOrArray='self',
+                    Q:StrOrArray='self',
+                    Phi:StrOrArray='self',
+                    shape='self') -> np.array:
+        '''Reconstruct data with the selected number of POD modes.
+        
+        Arguments:
+            number_of_modes: how many number of modes to use.
+            Q_mean, Q, Phi: If any of 'Q_mean', 'Q', or 'Phi' is not given, the method uses the values stored in self. 
+            shape: reshape the reconstructed vector into this shape, if left as default the result is reshaped to self.grid_shape.
+
+        Returns:
+            Reconstructed flow field with the shape specified by 'shape'
+        '''
         if Q_mean == 'self' or Q == 'self' or Phi == 'self':
             Q_mean = self.Q_mean
             Q = self.Q
@@ -231,6 +281,20 @@ class POD:
             rebuildv = np.reshape(rebuildv,shape)
         return rebuildv
     
-
+    @property
     def get_modes(self):
         return self.modes,self.lam
+
+    @property
+    def get_time_coefficient(self) -> np.array:
+        ''' Return the time coefficients
+        
+        The shape of the returned array depends on the type of POD.
+        '''
+        if self.typePOD == 'classic':
+            # temporal coefficient A
+            self._A = self.Q.T @ self.Phi # (nt,nx)
+        elif self.typePOD == 'snapshot':
+            # spatial coefficient A
+            self._A = self.Q @ self.Phi # (nx,nt)
+        return self._A
