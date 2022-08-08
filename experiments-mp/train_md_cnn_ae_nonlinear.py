@@ -116,9 +116,7 @@ def plot_results(folder_path:StrOrPath,
                     mode_packed:DataTuple, 
                     y:DataTuple, 
                     hist:DataTuple,
-                    decoders:list, 
-                    latent_dim:int,
-                    act_fct:str):
+                    latent_dim:int):
     '''Plot results
     
     folder_path: path to the result folder
@@ -147,7 +145,7 @@ def plot_results(folder_path:StrOrPath,
     post_processing.plot_autoencoder_modes(latent_dim,mode_train,t=0,savefig=True,folder_path=folder_path)
 
     # latent variables
-    post_processing.plot_latent_variable(coded_test,savefig=True,folder_path=folder_path,figtitle='latent variables of the testing set')
+    post_processing.plot_latent_variable(coded_test,savefig=True,folder_path=folder_path,figtitle='latent_variables_of_the testing_set')
 
     
 
@@ -167,7 +165,6 @@ def main(train_id:int, training_config:str, gpu_id:int, memory_limit:int, save_t
 
     # initiate job
     job = Train_md_cnn_ae(training_config, gpu_id)
-    job.set_gpu
 
     # set up callbacks
     model_cb=ModelCheckpoint(tempfn, monitor='loss',save_best_only=True,verbose=1,save_weights_only=True)#'val_loss or loss
@@ -228,9 +225,7 @@ def main(train_id:int, training_config:str, gpu_id:int, memory_limit:int, save_t
                 mode_packed, 
                 y, 
                 (hist_train,hist_val), 
-                job.get_mdl.get_decoders(), 
-                job.latent_dim, 
-                job.act_fct)    
+                job.latent_dim)    
 
     time.sleep(30)
 
