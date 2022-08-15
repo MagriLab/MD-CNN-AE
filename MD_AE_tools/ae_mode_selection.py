@@ -160,8 +160,8 @@ def kinetic_energy_ae_modes(modes):
     '''
     if modes.ndim != 5:
         raise ValueError("Input shape must be (modes,snapshots,Nx,Ny,Nu).") 
-    # ke_total =\sum_t,n(1/2 * sqrt(u^2 + v^2 + w^2)), where t is the number of snapshots and n is the number of cells.
-    ke = 0.5 * np.sqrt(np.einsum('z t x y u -> z', modes**2))
+    # ke_total =\sum_t,n(1/2 * (u^2 + v^2 + w^2)), where t is the number of snapshots and n is the number of cells.
+    ke = 0.5 * np.einsum('z t x y u -> z', modes**2)
     rank = rank_array(ke)
     return ke, rank
 
