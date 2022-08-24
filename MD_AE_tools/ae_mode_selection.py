@@ -33,7 +33,7 @@ def rms_amplitude(signal):
     amp_rms = np.mean((signal-np.mean(signal,0))**2,0)**0.5 
     signal_mean = np.mean(signal,0)
 
-    rank = rank_array(amp_rms)
+    rank = rank_modes_by(amp_rms)
     return amp_rms, signal_mean, rank
 
 
@@ -62,7 +62,7 @@ def energy_freq(signal:typing.Union[np.ndarray,list],
         signal_fft = np.fft.fft(signal_in)
         signal_energy.append(np.sum(np.abs(signal_fft)**2)/signal_fft.size)
     
-    rank = rank_array(signal_energy)
+    rank = rank_modes_by(signal_energy)
     return signal_energy, rank
 
 
@@ -162,7 +162,7 @@ def kinetic_energy_ae_modes(modes):
         raise ValueError("Input shape must be (modes,snapshots,Nx,Ny,Nu).") 
     # ke_total =\sum_t,n(1/2 * (u^2 + v^2 + w^2)), where t is the number of snapshots and n is the number of cells.
     ke = 0.5 * np.einsum('z t x y u -> z', modes**2)
-    rank = rank_array(ke)
+    rank = rank_modes_by(ke)
     return ke, rank
 
 
@@ -181,40 +181,42 @@ def variance_of_latent(latent_space:np.ndarray):
     if latent_space.ndim != 2:
         sys.exit("Input shape must be (time, latent_dim).") 
     cov = np.cov(latent_space.T)
-    rank = rank_array(np.diag(cov))
+    rank = rank_modes_by(np.diag(cov))
     return cov, rank
     
 
-def rank_array(array_like:typing.Union[np.ndarray,list], 
-                ascending=False, 
-                index_of_input:typing.Optional[typing.Union[np.ndarray,list]]=None) -> np.ndarray:
+def rank_modes_by(array_like:typing.Union[np.ndarray,list], 
+                ascending:bool=False, 
+                name_of_modes:typing.Optional[typing.Union[np.ndarray,list]]=None) -> np.ndarray:
     '''Rank the array_like input.
     
     Returns a list of index of the sorted elements of the array. Default descending order. If ascending is True, then sort by ascending order.
 
-    Input: 
-        array_like: array to sort, must have only one dimension.
+    Arguments: 
+        array_like: 1D numpy array_like, each element represents the measurment of a mode. 
+                Example: for three modes, array_like = [kinetic energy of mode 1, of mode 2, of mode 3] 
         ascending: default False (descending order). 
-        index_of_input: if None (default), the index number of the input 'array_like' will be assigned to range(0, len_of_input). 
-                        When provided by user, it must have the same shape as array_like. 
+        name_of_modes: 1D numpy array_like. If None (default), the index number of the input 'array_like' will be assigned to range(0, len_of_input). 
+                When provided by user, it must have the same length as array_like. 
+    Returns:
+        rank: 
     '''
-    array_like = np.squeeze(np.array(array_like))
+    # check input
+    array_like = np.array(array_like)
     if array_like.ndim != 1:
         raise ValueError('Incorrect array dimension, must be 1D array.')
-    
-    sort_idx = np.argsort(array_like)
-
-    if index_of_input is None:
-        index_of_input = np.arange(0, len(array_like))
+    if name_of_modes is None:
+        name_of_modes = np.arange(0, len(array_like))
     else:
-        index_of_input = np.squeeze(np.array(index_of_input))
-        if array_like.shape != index_of_input.shape:
-            raise ValueError('Incorrect user index for the input. Must be the same shape.')
+        name_of_modes = np.array(name_of_modes)
+        if array_like.shape != name_of_modes.shape:
+            raise ValueError('Incorrect name_of_modes. Must be the same shape as array_like.')
 
-    if ascending:
-        rank = index_of_input[sort_idx]
-    else:
-        rank = index_of_input[np.flip(sort_idx)]
+    # do ranking
+    sort_idx = np.argsort(array_like) # sort the measurements
+    if not ascending:
+        sort_idx = np.flip(sort_idx) # descending
+    rank = name_of_modes[sort_idx]
 
     return rank
 
@@ -222,30 +224,32 @@ def rank_array(array_like:typing.Union[np.ndarray,list],
 def best_mse_combined(modes:np.ndarray, data:np.ndarray) -> np.ndarray:
     '''Rank autoencoder modes cumulatively by mean squared error.
     
-    Find combinations of autoencoder modes that lead to the best reconstruction error by iteration. For example, a ranking of [2,1,3] means that the mse(data, mode_2) has the lowest error. Then try the combination mode_2 + mode_1 and mode_2 + mode_1 and mse(data, mode_2+mode_1) has lower error. 
+    Find combinations of autoencoder modes that lead to the best reconstruction error by iteration. 
+        For example, a ranking of [2,1,3] means that the mse(data, mode_2) has the lowest error.\n 
+        Then try the combination mode_2 + mode_1 and mode_2 + mode_3 and mse(data, mode_2+mode_1) has lower error. 
 
     Arguments:
         modes: autoencoder modes with shape (modes,snapshots,Nx,Ny,Nu).
         data: original data (input to the autoencoder), has shape (snapshots,Nx,Ny,Nu)
     
     Return:
-    rank: ranking of autoencoder modes, lowest mean square error first.
+        rank: ranking of autoencoder modes, lowest mean square error first.
     '''
     if (modes.ndim != 5) or (data.ndim != 4):
         raise ValueError("Modes must have shape (modes,snapshots,Nx,Ny,Nu), data must have shape (snapshots, Nx, Ny, Nu).") 
     
     latent_dim = modes.shape[0]
-    modes_E = np.copy(modes)
+    modes_E = np.copy(modes) # modes_E is modified in place
     rank = np.zeros(latent_dim,dtype='int')-1
-    for j in range(latent_dim):
+    for i in range(latent_dim):
         E_ref = 0
-        for i in range(latent_dim):
-            if i not in rank:
-                E = 1/_mse(data,modes_E[i,:,:,:,:])
-                if E > E_ref:
-                    E_ref = E
-                    rank[j] = i
-        modes_E = modes + modes_E[rank[j]]
+        for j in range(latent_dim):
+            if j not in rank:   #ignore modes that have already been ranked
+                E = 1/_mse(data,modes_E[j,:,:,:,:])
+                if E > E_ref:   #if the current mode/mode combination j has lower loss
+                    E_ref = E   #track lowest loss
+                    rank[i] = j #save mode number j to rankings
+        modes_E = modes + modes_E[rank[i]]  #next combination of modes
     
     return rank
 
@@ -260,7 +264,7 @@ def best_mse_individual(modes:np.ndarray, data:np.ndarray) -> np.ndarray:
         data: original data (input to the autoencoder), has shape (snapshots,Nx,Ny,Nu)
     
     Return:
-    rank: ranking of autoencoder modes, lowest mean square error first.
+        rank: ranking of autoencoder modes, lowest mean square error first.
     '''
     if (modes.ndim != 5) or (data.ndim != 4):
         raise ValueError("Modes must have shape (modes,snapshots,Nx,Ny,Nu), data must have shape (snapshots, Nx, Ny, Nu).")
@@ -269,5 +273,5 @@ def best_mse_individual(modes:np.ndarray, data:np.ndarray) -> np.ndarray:
     i_mse = []
     for i in range(latent_dim):
         i_mse.append(_mse(data,modes[i,:,:,:,:]))
-    rank = rank_array(i_mse,ascending=True)
+    rank = rank_modes_by(i_mse,ascending=True)
     return rank
