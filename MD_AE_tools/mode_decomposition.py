@@ -247,7 +247,7 @@ class POD:
         original_shape.extend([-1])
         self.modes = np.reshape(self.modes,original_shape)
 
-    def reconstruct(self, number_of_modes:int ,
+    def reconstruct(self, which_modes:typing.Union[int,list],
                     Q_mean:StrOrArray='self',
                     Q:StrOrArray='self',
                     Phi:StrOrArray='self',
@@ -255,7 +255,10 @@ class POD:
         '''Reconstruct data with the selected number of POD modes.
         
         Arguments:
-            number_of_modes: how many number of modes to use.
+            which_modes: which modes to use. \n
+                If given integer, mode up to the value given will be used. \n
+                If given list of 2 values [val1,val2], mode [val1:val2] will be used. \n
+                If given of more than 2 values, mode specified in the list is used.\n
             Q_mean, Q, Phi: If any of 'Q_mean', 'Q', or 'Phi' is not given, the method uses the values stored in self. 
             shape: reshape the reconstructed vector into this shape, if left as default the result is reshaped to self.grid_shape.
 
@@ -266,14 +269,25 @@ class POD:
             Q_mean = self.Q_mean
             Q = self.Q
             Phi = self.Phi
+        if isinstance(which_modes,int):
+            idx = np.s_[:,0:which_modes]
+        elif isinstance(which_modes,list):
+            if len(which_modes) == 2:
+                idx = np.s_[:,which_modes[0]:which_modes[1]]
+                print(f"Using mode [{which_modes[0]}:{which_modes[1]}]")
+            else:
+                idx = np.s_[:,which_modes]
+                print(f"Using modes named by user in argument 'which_modes'.")
+        else:
+            raise ValueError("Invalid argument: which_modes.")
         if self.typePOD == 'classic':
             # temporal coefficient A
             self.A = Q.T @ Phi #(nt,nx)
-            Q_add = Phi[:,0:number_of_modes] @ self.A[:,0:number_of_modes].T
+            Q_add = Phi[idx] @ self.A[idx].T
         elif self.typePOD == 'snapshot':
             # spatial coefficient A
             self.A = Q @ Phi #(nx,nt)
-            Q_add = self.A[:,0:number_of_modes] @ Phi[:,0:number_of_modes].T
+            Q_add = self.A[idx] @ Phi[idx].T
         rebuildv = np.reshape(Q_mean,(-1,1)) + Q_add
         if shape == 'self':
             rebuildv = np.reshape(rebuildv,self.grid_shape.append(-1))
