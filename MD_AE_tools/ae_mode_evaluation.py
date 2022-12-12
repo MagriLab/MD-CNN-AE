@@ -30,7 +30,11 @@ def equivalent_pca_energy(autoencoder_modes:np.ndarray, pod_modes:np.ndarray) ->
         X_train = np.vstack((x_train[i,:,:,:,0], x_train[i,:,:,:,1]))
         X_train = np.reshape(X_train,(-1, nt))
         A = einsum('x t, x m -> t m', X_train, pod_modes) # project
-        lam_1 = einsum('t m -> m',A**2) / (nt - 1)
+        if nt == 1:
+            warnings.warn('The autoencoder modes contain only one snapshots, variance cannot be calculated. Continuing the calculatin without diving by nt-1.')
+            lam_1 = einsum('t m -> m',A**2) 
+        else: 
+            lam_1 = einsum('t m -> m',A**2) / (nt - 1)
         lam_modes.append(lam_1)
     lam_modes = np.array(lam_modes) # [latent_dim, ny*nz]
 
