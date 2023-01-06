@@ -248,6 +248,7 @@ class POD:
         self.modes = np.reshape(self.modes,original_shape)
 
     def reconstruct(self, which_modes:typing.Union[int,list],
+                    A:StrOrArray='self',
                     Q_mean:StrOrArray='self',
                     Q:StrOrArray='self',
                     Phi:StrOrArray='self',
@@ -269,6 +270,8 @@ class POD:
             Q_mean = self.Q_mean
             Q = self.Q
             Phi = self.Phi
+        if A == 'self':
+            A = self.get_time_coefficient
         if isinstance(which_modes,int):
             idx = np.s_[:,0:which_modes]
         elif isinstance(which_modes,list):
@@ -281,16 +284,14 @@ class POD:
         else:
             raise ValueError("Invalid argument: which_modes.")
         if self.typePOD == 'classic':
-            # temporal coefficient A
-            self.A = Q.T @ Phi #(nt,nx)
-            Q_add = Phi[idx] @ self.A[idx].T
+            Q_add = Phi[idx] @ A[idx].T
         elif self.typePOD == 'snapshot':
-            # spatial coefficient A
-            self.A = Q @ Phi #(nx,nt)
-            Q_add = self.A[idx] @ Phi[idx].T
+            Q_add = A[idx] @ Phi[idx].T
         rebuildv = np.reshape(Q_mean,(-1,1)) + Q_add
         if shape == 'self':
-            rebuildv = np.reshape(rebuildv,self.grid_shape.append(-1))
+            new_shape = self.grid_shape
+            new_shape.append(-1)
+            rebuildv = np.reshape(rebuildv,tuple(new_shape))
         else:
             rebuildv = np.reshape(rebuildv,shape)
         return rebuildv
