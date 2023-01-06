@@ -419,10 +419,11 @@ class ResizeImages(Layer):
 class Autoencoder_ff(Model):
     def __init__(
         self,
-        input_shape,
-        layer_sizes = [700,300,100],
-        regularisation = 1e-5,
-        act_fct = 'tanh',
+        input_shape:int,
+        latent_dim:int,
+        layer_sizes:list = [700,300,100],
+        regularisation:float = 1e-5,
+        act_fct:str = 'tanh',
         *args,
         **kwargs
     ):
@@ -433,7 +434,10 @@ class Autoencoder_ff(Model):
         for l in layer_sizes:
            self.encoder_layers.append(
             Dense(l,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
-           ) 
+           )
+        self.encoder_layers.append(
+            Dense(latent_dim,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
+        )
 
         self.decoder_layers = []
         for l in layer_sizes[::-1]:

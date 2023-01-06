@@ -387,3 +387,35 @@ class TrainNN_from_config:
             self.Nx = [self.Ny,self.Nz]
 
         return u_all, data, data_shuffle, data_mean
+
+
+
+def create_update_fn(mdl,loss_fn,optimiser):
+    '''Create an update function for mdl to.\n
+
+    Arguments:\n
+        loss_fn: loss function to use that takes argument loss_fn(true,pred).\n
+        optimiser: a keras optimisear.
+
+    Return:\n
+        update: a function that updates the weights of mdl once.
+    '''
+    @tf.function
+    def update(x,y):
+        '''Update model once.\n
+
+        Arguments:\n
+            x: input to model.\n
+            y: label/expected output of model.\n
+        Return:\n
+            loss: loss at the current step
+        '''
+        with tf.GradientTape() as tape:
+            out = mdl(x,training=True)
+            loss = loss_fn(y,out)
+        grads = tape.gradient(loss,mdl.trainable_weights)
+        optimiser.apply_gradients(zip(grads,mdl.trainable_weights))
+        
+        return loss
+
+    return update
