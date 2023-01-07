@@ -424,26 +424,37 @@ class Autoencoder_ff(Model):
         layer_sizes:list = [700,300,100],
         regularisation:float = 1e-5,
         act_fct:str = 'tanh',
+        drop_rate = 0.0,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
 
         self.inn = Input(shape=(input_shape))
+
+
+        # encoder
         self.encoder_layers = []
         for l in layer_sizes:
-           self.encoder_layers.append(
-            Dense(l,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
-           )
+            self.encoder_layers.append(
+                Dense(l,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
+            )
+            if drop_rate > 0.0:
+                self.encoder_layers.append(Dropout(drop_rate))
+        
         self.encoder_layers.append(
             Dense(latent_dim,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
         )
 
+
+        # decoder
         self.decoder_layers = []
         for l in layer_sizes[::-1]:
-           self.decoder_layers.append(
-            Dense(l,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
-           ) 
+            self.decoder_layers.append(
+                Dense(l,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
+            ) 
+            if drop_rate > 0.0:
+                self.encoder_layers.append(Dropout(drop_rate))
         # last layer
         self.decoder_layers.append(
             Dense(input_shape,'linear',use_bias=False,kernel_regularizer=l2(regularisation))
