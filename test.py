@@ -1,5 +1,3 @@
-import numpy as np
-a = ['a','b']
-b = np.array(a)
-b = np.flip(b)
-print(b)
+a = 0.0000000001
+if a > 0.0:
+    print(a)
