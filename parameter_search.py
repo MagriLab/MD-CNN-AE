@@ -119,21 +119,21 @@ update = create_update_fn(mdl,loss_fn,optimiser)
 for epoch in range(1,nb_epoch+1):
     loss_epoch = []
     for xx in data_train:
-        loss_batch = update(xx,xx)
+        loss_batch = update(xx,xx).numpy()
         loss_epoch.append(loss_batch)
     loss = np.mean(loss_epoch)
 
     # validation
     for xx_val in data_val:
         y_val = mdl(xx_val,training=False)
-    loss_val = loss_fn(xx_val,y_val)
+    loss_val = loss_fn(xx_val,y_val).numpy()
     
     run.log({'loss':loss, 'loss_val':loss_val})
     
 
 for xx_test in data_test:
     y_test = mdl(xx_test,training=False)    
-    loss_test = loss_fn(xx_test,y_test)
+    loss_test = loss_fn(xx_test,y_test).numpy()
 
 if source == 'coeff':
     if not cut_off:
@@ -141,10 +141,10 @@ if source == 'coeff':
     else:
         m = cut_off
     y_reconstructed = pod.reconstruct(m,A=y_test.numpy()).astype('float32')#y_test.numpy()
-    loss_image = loss_fn(X[...,(ntrain+nval):],y_reconstructed)
+    loss_image = loss_fn(X[...,(ntrain+nval):],y_reconstructed).numpy()
 else:
     loss_image = loss_test
 
-
 run.log({'loss_test(mse)':loss_test, 'loss_image':loss_image})
+run.save('parameter_search.py')
 run.finish()

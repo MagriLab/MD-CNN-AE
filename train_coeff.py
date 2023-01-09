@@ -129,21 +129,25 @@ if LOG_WANDB:
 
 update = create_update_fn(mdl,loss_fn,optimiser)
 
-epochs = 1
-hist_loss = []
-for epoch in range(1,epochs+1):
+hist_loss = [np.inf]
+hist_val = [np.inf]
+for epoch in range(1,nb_epoch+1):
     loss_epoch = []
     for xx in data_train:
         # print(xx.shape)
         loss_batch = update(xx,xx)
-        loss_epoch.append(loss_batch)
+        loss_epoch.append(loss_batch.numpy())
+
     loss = np.mean(loss_epoch)
     hist_loss.append(loss)
 
     # validation
     for xx_val in data_val:
         y_val = mdl(xx_val,training=False)
-    loss_val = loss_fn(xx_val,y_val)
+    loss_val = loss_fn(xx_val,y_val).numpy()
+    if loss_val < hist_val[-1]:
+        mdl.save_weights('temp_weights.h5')
+    hist_val.append(loss_val)
 
 
     if LOG_WANDB:
@@ -151,10 +155,11 @@ for epoch in range(1,epochs+1):
     
     if epoch % 1 == 0:
         print(f'Epoch {epoch}: loss {loss}, validation loss {loss_val}')
+mdl.load_weights('temp_weights.h5')
 
 for xx_test in data_test:
     y_test = mdl(xx_test,training=False)    
-    loss_test = loss_fn(xx_test,y_test)
+    loss_test = loss_fn(xx_test,y_test).numpy()
 
 if source == 'coeff':
     if not cut_off:
@@ -162,7 +167,7 @@ if source == 'coeff':
     else:
         m = cut_off
     y_reconstructed = pod.reconstruct(m,A=y_test.numpy()).astype('float32')#y_test.numpy()
-    loss_image = loss_fn(X[...,(ntrain+nval):],y_reconstructed)
+    loss_image = loss_fn(X[...,(ntrain+nval):],y_reconstructed).numpy()
 else:
     loss_image = loss_test
 
