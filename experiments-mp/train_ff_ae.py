@@ -2,11 +2,10 @@ import sys
 sys.path.append('..')
 
 import typing
-import pathlib
+from pathlib import Path
 import argparse
 import os
-from shutil import copyfile
-from contextlib import redirect_stderr, redirect_stdout
+# from shutil import copyfile
 import h5py
 import time
 
@@ -18,6 +17,23 @@ from project_specific_utils import data_and_train
 from project_specific_utils.ff_ae import Train_ff_ae
 
 
+def save_results(folder_path, job, loss_test, loss_image):
+
+    hist = job.get_loss_history
+    with h5py.File(Path(folder_path,'params.h5'),'w') as hf:
+        if job.RAW_DATA:
+            hf.create_dataset('random_seed',data=job.random_seed)
+            if job.SHUFFLE:
+                hf.create_dataset('idx_unshuffle',data=job.idx_unshuffle)
+        hf.create_dataset('loss_train',data=hist['train'])
+        hf.create_dataset('loss_val',data=hist['val'])
+        hf.create_dataset('loss_test', data=loss_test)
+        hf.create_dataset('loss_image', data=loss_image)
+        
+    job.save_weights(Path(folder_path,'weights.h5'))
+
+
+
 
 def main(train_id, training_config, gpu_id, memory_limit, save_to, CPU):
     pid = os.getpid()
@@ -27,24 +43,40 @@ def main(train_id, training_config, gpu_id, memory_limit, save_to, CPU):
         message = 'cpu'
     else:
         message = 'gpu ' + str(gpu_id)
+        data_and_train.set_gpu(gpu_id,memory_limit)
     print('Running job No.%i, PID %i, from file %s, on %s.'
             %(train_id,pid,training_config,message))
     
-    job = Train_ff_ae(training_config)
-    data_and_train.set_gpu(gpu_id,memory_limit)
-    data = job.read_data()
-    folder_path = job.set_save_location()
+    job = Train_ff_ae()
+    job.import_config(training_file=training_config)
+
+    data_train, data_val, data_test = job.read_data(random_seed=pid)
+    folder_path = job.set_save_location(save_to,suffix)
     job.make_model()
-    run = job.set_wandb()
-    job.train_model()
-    loss_test, loss_image = job.get_reconstructed_loss()
+
+    if job.LOG_WANDB:
+        run = job.set_wandb()
+    else:
+        run = None
+    job.train_model(
+        data_train,
+        data_val,
+        checkpoint=True,
+        temp_file=Path(tempfn),
+        wandb_run=run,
+        print_freq=10
+    )
+
+    loss_test, loss_image = job.get_reconstructed_loss(data_test)
+    print(f'Testing loss is {loss_test}. Reconstructed loss is {loss_image}')
     
 
     # save file to wandb
-    # if loss_val improve    
-    run.log({'loss_test(mse)':loss_test, 'loss_image':loss_image})
-    run.save(tempfn)
-    run.finish()
+    if job.LOG_WANDB:
+        run.log({'loss_test(mse)':loss_test, 'loss_image':loss_image})
+        run.save(training_config)
+        run.finish()
+    save_results(folder_path,job,loss_test,loss_image)
 
 
     time.sleep(30)
