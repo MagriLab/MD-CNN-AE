@@ -256,13 +256,13 @@ class Train_ff_ae():
 
     def get_reconstructed_loss(self, data_test:tf.data.Dataset):
 
-        pod,X = self._pod_with_data
 
         for xx_test in data_test:
             y_test = self._mdl(xx_test,training=False)    
             loss_test = self.loss_fn(xx_test,y_test).numpy()
 
         if self.source == 'coeff':
+            pod,X = self._pod_with_data
             if not self.cut_off:
                 m = self.Ny*self.Nz*self.Nu
             else:

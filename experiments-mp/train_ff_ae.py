@@ -64,7 +64,7 @@ def main(train_id, training_config, gpu_id, memory_limit, save_to, CPU):
         checkpoint=True,
         temp_file=Path(tempfn),
         wandb_run=run,
-        print_freq=10
+        print_freq=100
     )
 
     loss_test, loss_image = job.get_reconstructed_loss(data_test)
@@ -75,6 +75,7 @@ def main(train_id, training_config, gpu_id, memory_limit, save_to, CPU):
     if job.LOG_WANDB:
         run.log({'loss_test(mse)':loss_test, 'loss_image':loss_image})
         run.save(training_config)
+        run.tags = run.tags + ("repeat",)
         run.finish()
     save_results(folder_path,job,loss_test,loss_image)
 
