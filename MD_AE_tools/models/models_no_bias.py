@@ -454,7 +454,7 @@ class Autoencoder_ff(Model):
                 Dense(l,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
             ) 
             if drop_rate > 0.0:
-                self.encoder_layers.append(Dropout(drop_rate))
+                self.decoder_layers.append(Dropout(drop_rate))
         # last layer
         self.decoder_layers.append(
             Dense(input_shape,'linear',use_bias=False,kernel_regularizer=l2(regularisation))
