@@ -5,7 +5,7 @@ import typing
 from pathlib import Path
 import argparse
 import os
-# from shutil import copyfile
+from shutil import copyfile
 import h5py
 import time
 
@@ -80,6 +80,7 @@ def main(train_id, training_config, gpu_id, memory_limit, save_to, CPU):
     save_results(folder_path,job,loss_test,loss_image)
 
 
+    copyfile(training_config,Path(folder_path,'training_param.ini'))
     time.sleep(30)
     os.remove(tempfn)
 

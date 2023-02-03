@@ -1,65 +1,12 @@
+from MD_AE_tools.models.models_no_bias import Autoencoder_ff
+from pathlib import Path 
 
-import sys
-import tensorflow as tf
-from tensorflow.keras import backend as K
-tf.keras.backend.set_floatx('float32')
+w = Path('../../Results/MD-CNN-AE/experiment_ff_ae_data/no_cutoff_10-3792699/weights.h5')
+# print(w.exists())
 
-from tensorflow.keras import Input
-from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, UpSampling2D, Concatenate, BatchNormalization, Conv2DTranspose, Flatten, PReLU, Reshape, Dropout, AveragePooling2D, Add, Lambda, Layer
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.initializers import Constant
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.models import Model
+mdl=Autoencoder_ff(1008,2,[450,150,50],act_fct='relu',drop_rate=0.12)
 
-class Autoencoder_ff(Model):
-    def __init__(
-        self,
-        input_shape:int,
-        latent_dim:int,
-        layer_sizes:list = [700,300,100],
-        regularisation:float = 1e-5,
-        act_fct:str = 'tanh',
-        drop_rate = 0.0,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
+mdl.build((None,1008))
+mdl.summary()
+mdl.load_weights(w)
 
-        self.inn = Input(shape=(input_shape))
-
-
-        # encoder
-        self.encoder_layers = []
-        for l in layer_sizes:
-            self.encoder_layers.append(
-                Dense(l,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
-            )
-            if drop_rate > 0.0:
-                self.encoder_layers.append(Dropout(drop_rate))
-        
-        self.encoder_layers.append(
-            Dense(latent_dim,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
-        )
-
-
-        # decoder
-        self.decoder_layers = []
-        for l in layer_sizes[::-1]:
-            self.decoder_layers.append(
-                Dense(l,act_fct,use_bias=False,kernel_regularizer=l2(regularisation))
-            ) 
-            if drop_rate > 0.0:
-                self.encoder_layers.append(Dropout(drop_rate))
-        # last layer
-        self.decoder_layers.append(
-            Dense(input_shape,'linear',use_bias=False,kernel_regularizer=l2(regularisation))
-        )
-        self.out = self.call(self.inn)
-
-    def call(self, inputs, training=None):
-        x = inputs
-        for layer in self.encoder_layers:
-            x = layer(x)
-        for layer in self.decoder_layers:
-            x = layer(x)
-        return x
