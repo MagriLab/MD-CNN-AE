@@ -144,7 +144,7 @@ def plot_results(folder_path:StrOrPath,
     post_processing.plot_autoencoder_modes(latent_dim,mode_train,t=0,savefig=True,folder_path=folder_path)
 
     # decoder weights and biases
-    post_processing.plot_decoder_weights_bias(decoder, latent_dim, savefig=True, folder_path=folder_path)
+    # post_processing.plot_decoder_weights_bias(decoder, latent_dim, savefig=True, folder_path=folder_path)
 
 
 
