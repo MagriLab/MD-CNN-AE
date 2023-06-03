@@ -2,6 +2,7 @@ temp*
 _*
 !__init__.py
 .*
+*.pdf
 
 
 *.gif
