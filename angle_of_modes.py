@@ -97,13 +97,13 @@ plt.xticks([1,2,3],['$\gamma = 0.0$','$\gamma = 0.01$','$\gamma = 0.1$'],fontsiz
 plt.ylabel('$\\alpha$',fontsize='large')
 plt.ylim([-0.7,0.8])
 
-plt.text(0.87,0.72,f'$\sigma$={np.var(angles0):.3f}',fontsize='large')
+plt.text(0.87,0.72,f'$\sigma$={np.std(angles0):.3f}',fontsize='large')
 plt.text(0.87,0.65,f'$\mu$={np.mean(angles0):.3f}',fontsize='large')
 
-plt.text(1.83,0.72,f'$\sigma$={np.var(angles01):.3f}',fontsize='large')
+plt.text(1.83,0.72,f'$\sigma$={np.std(angles01):.3f}',fontsize='large')
 plt.text(1.83,0.65,f'$\mu$={np.mean(angles01):.3f}',fontsize='large')
 
-plt.text(2.87,0.72,f'$\sigma$={np.var(angles001):.3f}',fontsize='large')
+plt.text(2.87,0.72,f'$\sigma$={np.std(angles001):.3f}',fontsize='large')
 plt.text(2.87,0.65,f'$\mu$={np.mean(angles001):.3f}',fontsize='large')
 
 
