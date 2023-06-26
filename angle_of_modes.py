@@ -39,7 +39,7 @@ for folder in ls0:
     magnitude = magnitude1*magnitude2
     
     modes_dot_product = np.diag(einsum('ij,ik',mode1,mode2))
-    angles = modes_dot_product / magnitude
+    angles = np.arccos(modes_dot_product / magnitude)
     angles0.extend(angles)
 angles0 = np.array(angles0)
 
@@ -63,7 +63,7 @@ for folder in ls01:
     magnitude = magnitude1*magnitude2
     
     modes_dot_product = np.diag(einsum('ij,ik',mode1,mode2))
-    angles = modes_dot_product / magnitude
+    angles = np.arccos(modes_dot_product / magnitude)
     angles01.extend(angles)
 angles01 = np.array(angles01)
 
@@ -87,24 +87,28 @@ for folder in ls001:
     magnitude = magnitude1*magnitude2
     
     modes_dot_product = np.diag(einsum('ij,ik',mode1,mode2))
-    angles = modes_dot_product / magnitude
+    angles = np.arccos(modes_dot_product / magnitude)
     angles001.extend(angles)
 angles001 = np.array(angles001)
 
 plt.figure(figsize=(7,5))
-plt.boxplot([angles0,angles001,angles01],sym='.')
+plt.boxplot([angles0,angles001,angles01],sym='.',zorder=2)
 plt.xticks([1,2,3],['$\gamma = 0.0$','$\gamma = 0.01$','$\gamma = 0.1$'],fontsize='large')
-plt.ylabel('$\\alpha$',fontsize='large')
-plt.ylim([-0.7,0.8])
+plt.ylabel('$\\alpha$ (rad)' ,fontsize='large')
+plt.ylim([0.8,2.6])
 
-plt.text(0.87,0.72,f'$\sigma$={np.std(angles0):.3f}',fontsize='large')
-plt.text(0.87,0.65,f'$\mu$={np.mean(angles0):.3f}',fontsize='large')
+plt.hlines(np.pi/2,xmin=0.5,xmax=3.5,linestyles='dotted',colors='k',zorder=1,label='$\pi/2$')
 
-plt.text(1.83,0.72,f'$\sigma$={np.std(angles01):.3f}',fontsize='large')
-plt.text(1.83,0.65,f'$\mu$={np.mean(angles01):.3f}',fontsize='large')
+plt.text(0.87,2.52,f'$\sigma$={np.std(angles0):.3f}',fontsize='large')
+plt.text(0.87,2.45,f'$\mu$={np.mean(angles0):.3f}',fontsize='large')
 
-plt.text(2.87,0.72,f'$\sigma$={np.std(angles001):.3f}',fontsize='large')
-plt.text(2.87,0.65,f'$\mu$={np.mean(angles001):.3f}',fontsize='large')
+plt.text(1.83,2.52,f'$\sigma$={np.std(angles01):.3f}',fontsize='large')
+plt.text(1.83,2.45,f'$\mu$={np.mean(angles01):.3f}',fontsize='large')
+
+plt.text(2.87,2.52,f'$\sigma$={np.std(angles001):.3f}',fontsize='large')
+plt.text(2.87,2.45,f'$\mu$={np.mean(angles001):.3f}',fontsize='large')
+
+plt.legend(loc='best', bbox_to_anchor=(0.7, 0.5, 0.3, 0.3))
 
 
 plt.savefig('regularisation-orthogonality.pdf')
