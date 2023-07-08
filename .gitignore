@@ -4,7 +4,7 @@ _*
 .*
 *.pdf
 *.h5
-
+*.npy
 
 *.gif
 *.png
