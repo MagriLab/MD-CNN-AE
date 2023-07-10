@@ -180,7 +180,7 @@ class MD_Autoencoder(Model):
         self.name_decoder = self.name_layer(prefix='decoder')
         self.layer_decoder_group = []
         for i in range(0,self.latent_dim):
-            self.layer_decoder_group.append((Lambda(lambda x,i: x[:,i:i+1],arguments={'i':i},name=self.name_lambda[i]),Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name=self.name_decoder[i], **decoder_kwargs)))
+            self.layer_decoder_group.append((Lambda(lambda x,i: x[:,i:i+1],arguments={'i':i},name=self.name_lambda[i]),Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,keras_mdl_kwargs={'name':self.name_decoder[i]}, **decoder_kwargs)))
         
         # print(self.layer_decoder_group)
         # for lam,decoder in self.layer_decoder_group:
