@@ -16,8 +16,8 @@ import numpy as np
 
 class Encoder(Model):
     def __init__(self,Nx,Nu,features_layers=[1],latent_dim=16,
-        filter_window=(3,3),act_fct='tanh',batch_norm=False,drop_rate=0.0, lmb=0.0, **kwargs):
-        super(Encoder,self).__init__(**kwargs)
+        filter_window=(3,3),act_fct='tanh',batch_norm=False,drop_rate=0.0, lmb=0.0, keras_mdl_kwargs={}, **kwargs):
+        super(Encoder,self).__init__(**keras_mdl_kwargs)
         self.Nx = Nx
         self.Nu = Nu
         self.features_layers = features_layers
@@ -29,6 +29,12 @@ class Encoder(Model):
         self.lmb =lmb
         input_shape = (self.Nx[0],self.Nx[1],self.Nu)
         self.input_img = Input(shape = input_shape)
+
+        if 'last_act' in kwargs:
+            self.last_act = kwargs['last_act']
+            print('setting custum last layer activation for the encoder.')
+        else:
+            self.last_act = act_fct
 
         if isinstance(lmb,float):
             self.lmb = [lmb, lmb]
@@ -44,7 +50,7 @@ class Encoder(Model):
             self.add_layers.append(MaxPool2D(pool_size=(2,2), padding='same'))
             self.add_layers.append(Dropout(self.drop_rate))
 
-        self.dense = Dense(self.latent_dim,kernel_regularizer=l2(self.lmb[0]), bias_regularizer=l2(self.lmb[1]), activation=self.act_fct, use_bias=False)
+        self.dense = Dense(self.latent_dim,kernel_regularizer=l2(self.lmb[0]), bias_regularizer=l2(self.lmb[1]),activation=self.last_act)
         self.last_dropout = Dropout(self.drop_rate)
         
         # define model
@@ -76,8 +82,8 @@ class Encoder(Model):
 
 class Decoder(Model):
     def __init__(self,Nx,Nu,layer_size,features_layers=[1],latent_dim=1,
-        filter_window=(3,3),act_fct='tanh',batch_norm=False,drop_rate=0.0, lmb=0.0,resize_meth='bilinear',**kwargs):
-        super(Decoder,self).__init__(**kwargs)
+        filter_window=(3,3),act_fct='tanh',batch_norm=False,drop_rate=0.0, lmb=0.0,resize_meth='bilinear', keras_mdl_kwargs={},**kwargs):
+        super(Decoder,self).__init__(**keras_mdl_kwargs)
         self.Nx = Nx
         self.Nu = Nu
         self.layer_size = layer_size # from Encoder.get_layer_shape
@@ -92,13 +98,19 @@ class Decoder(Model):
 
         if isinstance(lmb,float):
             self.lmb = [lmb, lmb]
+        
+        if 'first_act' in kwargs:
+            self.first_act = kwargs['first_act']
+            print('setting custom first layer activation for the decoder.')
+        else:
+            self.first_act = self.act_fct
 
         prelatent_size = np.prod(self.layer_size[-1],initial=self.features_layers[-1])
         # prelatent_size = np.prod(self.layer_size[-1])
 
         self.add_layers = [] # store layers
 
-        self.add_layers.append(Dense(prelatent_size,kernel_regularizer=l2(self.lmb[0]), bias_regularizer=l2(self.lmb[1]), activation=act_fct, use_bias=False)) # restore the number of elements in the layer before the latent space
+        self.add_layers.append(Dense(prelatent_size,kernel_regularizer=l2(self.lmb[0]), bias_regularizer=l2(self.lmb[1]), activation=self.first_act)) # restore the number of elements in the layer before the latent space
         if self.batch_norm:
             self.add_layers.append(BatchNormalization())
         self.add_layers.append(Dropout(self.drop_rate))
@@ -136,7 +148,7 @@ class Decoder(Model):
 class MD_Autoencoder(Model):
     def __init__(self,Nx,Nu,features_layers=[1],latent_dim=2,
         filter_window=(3,3),act_fct='tanh',batch_norm=False,
-        drop_rate=0.0, lmb=0.0,resize_meth='bilinear', *args, **kwargs):
+        drop_rate=0.0, lmb=0.0,resize_meth='bilinear', encoder_kwargs={}, decoder_kwargs={}, *args, **kwargs):
         # see Murata, Fukami and Fukagata. 2020. Nonlinear mode decomposition with convolutional neural networks for fluid dynamics. J. Fluid Mech.
         self.Nx = Nx
         self.Nu = Nu
@@ -160,7 +172,7 @@ class MD_Autoencoder(Model):
         # Define layers here, not in call
 
         # DEFINE ENCODER
-        self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb)
+        self.encoder = Encoder(Nx=Nx,Nu=Nu,features_layers=features_layers,latent_dim=latent_dim,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,**encoder_kwargs)
         layer_size = self.encoder.get_layer_shape()
         
         # Define layers
@@ -168,7 +180,7 @@ class MD_Autoencoder(Model):
         self.name_decoder = self.name_layer(prefix='decoder')
         self.layer_decoder_group = []
         for i in range(0,self.latent_dim):
-            self.layer_decoder_group.append((Lambda(lambda x,i: x[:,i:i+1],arguments={'i':i},name=self.name_lambda[i]),Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name=self.name_decoder[i])))
+            self.layer_decoder_group.append((Lambda(lambda x,i: x[:,i:i+1],arguments={'i':i},name=self.name_lambda[i]),Decoder(Nx=Nx,Nu=Nu,layer_size=layer_size,features_layers=features_layers,latent_dim=1,filter_window=filter_window,act_fct=act_fct,batch_norm=batch_norm,drop_rate=drop_rate,lmb=lmb,resize_meth=resize_meth,name=self.name_decoder[i], **decoder_kwargs)))
         
         # print(self.layer_decoder_group)
         # for lam,decoder in self.layer_decoder_group:
@@ -292,7 +304,7 @@ class HierarchicalAE_sub(Model): # take input [u_train, latent_vector_1 (form su
 class Autoencoder(Model):
     def __init__(self,Nx,Nu,features_layers=[1],latent_dim=1,
         filter_window=(3,3),act_fct='tanh',batch_norm=False,
-        drop_rate=0.0, lmb=0.0,resize_meth='bilinear',**kwargs):
+        drop_rate=0.0, lmb=0.0,resize_meth='bilinear',encoder_kwargs={}, decoder_kwargs={},**kwargs):
         super(Autoencoder,self).__init__(**kwargs)
 
         self.Nx = Nx # [num1,num2]
@@ -307,10 +319,10 @@ class Autoencoder(Model):
         self.resize_meth = resize_meth
 
         # ENCODER
-        self.encoder = Encoder(Nx=self.Nx,Nu=self.Nu,features_layers=self.features_layers,latent_dim=self.latent_dim,filter_window=self.filter_window,act_fct=self.act_fct,batch_norm=self.batch_norm,drop_rate=self.drop_rate,lmb=self.lmb)
+        self.encoder = Encoder(Nx=self.Nx,Nu=self.Nu,features_layers=self.features_layers,latent_dim=self.latent_dim,filter_window=self.filter_window,act_fct=self.act_fct,batch_norm=self.batch_norm,drop_rate=self.drop_rate,lmb=self.lmb, **encoder_kwargs)
         # DECODER
         layer_size = self.encoder.get_layer_shape()
-        self.decoder = Decoder(Nx=self.Nx,Nu=self.Nu,layer_size=layer_size,features_layers=self.features_layers,latent_dim=self.latent_dim,filter_window=self.filter_window,act_fct=self.act_fct,batch_norm=self.batch_norm,drop_rate=self.drop_rate,lmb=self.lmb)
+        self.decoder = Decoder(Nx=self.Nx,Nu=self.Nu,layer_size=layer_size,features_layers=self.features_layers,latent_dim=self.latent_dim,filter_window=self.filter_window,act_fct=self.act_fct,batch_norm=self.batch_norm,drop_rate=self.drop_rate,lmb=self.lmb, **decoder_kwargs)
 
 
         input_shape = (self.Nx[0],self.Nx[1],self.Nu)
