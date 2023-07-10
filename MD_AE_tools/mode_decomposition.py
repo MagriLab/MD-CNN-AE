@@ -236,8 +236,10 @@ class POD:
         idx = np.flip(idx)
         Phi = Phi[:,idx]
         lam = lam[idx]
-        # get spatial POD modes: PSI = Q*Phi
+        # get spatial POD modes: PSI = Q*Phi, must be normalised
         Q_POD = (Q@Phi)*(1/(lam**0.5).T)
+        norms = np.einsum('m n -> n', Q_POD**2)**0.5
+        Q_POD = Q_POD/norms.reshape((1,-1))
         return Q_POD, lam, Phi
 
 
@@ -302,14 +304,16 @@ class POD:
 
     @property
     def get_time_coefficient(self) -> np.array:
-        ''' Return the time coefficients
+        ''' Return the temporal or spatial coefficients depending on the method
         
         The shape of the returned array depends on the type of POD.
         '''
         if self.typePOD == 'classic':
             # temporal coefficient A
+            print('Returning temporal coefficients for classic POD.')
             self._A = self.Q.T @ self.Phi # (nt,nx)
         elif self.typePOD == 'snapshot':
             # spatial coefficient A
+            print(' Returning spatial coefficients for snapshot POD.')
             self._A = self.Q @ self.Phi # (nx,nt)
         return self._A
