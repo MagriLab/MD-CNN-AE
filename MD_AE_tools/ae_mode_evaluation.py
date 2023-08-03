@@ -27,8 +27,11 @@ def equivalent_pca_energy(autoencoder_modes:np.ndarray, pod_modes:np.ndarray) ->
     x_train = einsum('k t y z u -> k y z t u', autoencoder_modes)
     lam_modes = [] # how much of a POD is in an AE mode
     for i in range(autoencoder_modes.shape[0]):
-        X_train = np.vstack((x_train[i,:,:,:,0], x_train[i,:,:,:,1]))
-        X_train = np.reshape(X_train,(-1, nt))
+        if x_train.shape[-1] > 1:
+            X_train = np.vstack((x_train[i,:,:,:,0], x_train[i,:,:,:,1]))
+            X_train = np.reshape(X_train,(-1, nt))
+        else:
+            X_train = np.reshape(x_train[i,...],(-1, nt))
         A = einsum('x t, x m -> t m', X_train, pod_modes) # project
         if nt == 1:
             warnings.warn('The autoencoder modes contain only one snapshots, variance cannot be calculated. Continuing the calculatin without diving by nt-1.')

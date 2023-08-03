@@ -5,6 +5,7 @@ _*
 *.pdf
 *.h5
 *.npy
+*.i3d
 
 *.gif
 *.png
