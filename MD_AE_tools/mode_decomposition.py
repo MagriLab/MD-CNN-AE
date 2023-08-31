@@ -193,8 +193,8 @@ class POD:
     def set_weight(self):
         if self.weight == 'ones':
             weights = np.ones((self.nx,1))
-        elif isinstance(self.weight, np.array):
-            weights = self.weights
+        elif isinstance(self.weight, np.ndarray):
+            weights = self.weight
         else:
             raise ValueError('Choose weights from available options or provide a numpy array.')
         return weights
