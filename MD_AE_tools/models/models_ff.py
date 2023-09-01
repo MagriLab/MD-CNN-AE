@@ -35,7 +35,7 @@ class Encoder(Model):
 
         if 'last_act' in kwargs:
             self.last_act = kwargs['last_act']
-            print('setting custum last layer activation for the encoder.')
+            print('setting custom last layer activation for the encoder.')
         else:
             self.last_act = act_fct
 
@@ -46,25 +46,25 @@ class Encoder(Model):
 
         self.input_img = Input(shape=(input_shape,))
 
-        self.layers = []
+        self.mdl_layers = []
 
         for l in layer_sizes:
 
-            self.layers.append(
-                Dense(l, activation=self.act_fct, use_bias=False, kernel_initializer=l2(self.lmb[0]))
+            self.mdl_layers.append(
+                Dense(l, activation=self.act_fct, use_bias=False, kernel_regularizer=l2(self.lmb[0]))
             )
 
             if batch_norm:
-                self.layers.append(
+                self.mdl_layers.append(
                     BatchNormalization()
                 )
             
-            self.layers.append(
+            self.mdl_layers.append(
                 Dropout(drop_rate)
             )
 
         # last layer
-        self.layers.append(
+        self.mdl_layers.append(
             Dense(latent_dim, activation=self.last_act, use_bias=False, kernel_regularizer=l2(self.lmb[0]))
         )
 
@@ -72,7 +72,7 @@ class Encoder(Model):
         
     def call(self,inputs,training=False):
         x = inputs
-        for layer in self.layers:
+        for layer in self.mdl_layers:
             x = layer(x)
 
         return x
@@ -108,37 +108,37 @@ class Decoder(Model):
             self.first_act = kwargs['first_act']
             print('setting custom first layer activation for the decoder.')
         else:
-            self.first_act = self.act_fct
+            self.first_act = act_fct
 
         self.input_img = Input(shape=(latent_dim,))
         
-        self.layers = []
+        self.mdl_layers = []
         
         ## first layer  
-        self.layers.append(
+        self.mdl_layers.append(
             Dense(layer_sizes[0], activation=self.first_act, use_bias=False, kernel_regularizer=l2(self.lmb[0]))
         )
         if batch_norm:
-            self.layers.append(BatchNormalization())    
-        self.layers.append(Dropout(drop_rate))
+            self.mdl_layers.append(BatchNormalization())    
+        self.mdl_layers.append(Dropout(drop_rate))
 
         for l in layer_sizes[1:]:
 
-            self.layers.append(
+            self.mdl_layers.append(
                 Dense(l, activation=act_fct, use_bias=False, kernel_regularizer=l2(self.lmb[0]))
             )
 
             if batch_norm:
-                self.layers.append(
+                self.mdl_layers.append(
                     BatchNormalization()
                 )    
             
-            self.layers.append(
+            self.mdl_layers.append(
                 Dropout(drop_rate)
             )
 
         ## last layer
-        self.layers.append(
+        self.mdl_layers.append(
             Dense(output_shape, activation='linear', use_bias=False, kernel_regularizer=l2(self.lmb[0]))
         )
 
@@ -147,7 +147,7 @@ class Decoder(Model):
 
     def call(self,inputs,training=False):
         x = inputs
-        for layer in self.layers:
+        for layer in self.mdl_layers:
             x = layer(x)
 
         return x
