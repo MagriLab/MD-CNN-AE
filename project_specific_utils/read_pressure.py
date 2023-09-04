@@ -24,6 +24,9 @@ class PIVdata(IntEnum):
     PIV17 = 11
     PIV18 = 12
 
+    def all_tests():
+        return list(range(13))
+
 
 
 
