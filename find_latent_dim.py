@@ -25,8 +25,10 @@ if gpus:
 
 
 # =================== Parameters ============================
-fname = Path('./_results/find_latent_dim_by2.h5')
-tempfn_ae = './temp_weights_by2.h5'
+fname = Path('./_results/find_latent_dim_32.h5')
+tempfn_ae = './temp_weights_32.h5'
+if fname.exists():
+    raise ValueError('File for writing results already exists.')
 
 which_sets = [PIVdata.PIV7, PIVdata.PIV9, PIVdata.PIV12
 , PIVdata.PIV17]
@@ -62,8 +64,8 @@ lrschedule = tf.keras.optimizers.schedules.CosineDecayRestarts(
 )
 
 
-latent_dim_list = [32, 8, 2]
-num_repeats = 5
+latent_dim_list = [32]
+num_repeats = 3
 
 
 # ================ Data ================
@@ -90,17 +92,6 @@ p_train = esp_allt - pmean.flatten()[:,np.newaxis]
 p_train = p_train.T
 
 
-# =============== results =====================
-f = h5py.File(fname,'x')
-f.create_dataset('latent_dim_list', data=latent_dim_list)
-f.create_dataset('encoder_layers',data=encoder_layers)
-f.create_dataset('decoder_layers',data=decoder_layers)
-f.create_dataset('act_fct',data=act_fct)
-f.create_dataset('batch_norm',data=batch_norm)
-f.create_dataset('drop_rate',data=drop_rate)
-f.create_dataset('lmb',data=lmb)
-f.create_dataset('learning_rate',data=learning_rate)
-
 
 # ============ repeats =================
 loss_history = np.zeros((len(latent_dim_list),num_repeats,nb_epoch))
@@ -110,16 +101,18 @@ loss_best = np.zeros((len(latent_dim_list),num_repeats))
 
 for i in range(len(latent_dim_list)):
     for j in range(num_repeats):
+
+        print(f'Starting test {i} with {latent_dim_list[i]} latent variables, repeat no. {j}')
         
         ae = modelff.Autoencoder(
-        input_shape = input_shape,
-        encoder_layers = encoder_layers,
-        decoder_layers = decoder_layers,
-        latent_dim = latent_dim_list[i],
-        act_fct = act_fct,
-        batch_norm = batch_norm,
-        drop_rate = drop_rate,
-        lmb = lmb
+            input_shape = input_shape,
+            encoder_layers = encoder_layers,
+            decoder_layers = decoder_layers,
+            latent_dim = latent_dim_list[i],
+            act_fct = act_fct,
+            batch_norm = batch_norm,
+            drop_rate = drop_rate,
+            lmb = lmb
         )
 
         model_cb = ModelCheckpoint(
@@ -137,6 +130,7 @@ for i in range(len(latent_dim_list)):
             p_train,
             p_train,
             epochs=nb_epoch,
+            batch_size=batch_size,
             shuffle=True,
             callbacks=cb,
             verbose=2
@@ -149,6 +143,18 @@ for i in range(len(latent_dim_list)):
         l2error = np.mean((pred - p_train)**2)
         loss_best[i,j] = l2error
 
+
+# =============== results =====================
+print('Writing results')
+f = h5py.File(fname,'x')
+f.create_dataset('latent_dim_list', data=latent_dim_list)
+f.create_dataset('encoder_layers',data=encoder_layers)
+f.create_dataset('decoder_layers',data=decoder_layers)
+f.create_dataset('act_fct',data=act_fct)
+f.create_dataset('batch_norm',data=batch_norm)
+f.create_dataset('drop_rate',data=drop_rate)
+f.create_dataset('lmb',data=lmb)
+f.create_dataset('learning_rate',data=learning_rate)
 
 
 f.create_dataset('loss_best',data=loss_best)
