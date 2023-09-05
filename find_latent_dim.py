@@ -25,13 +25,13 @@ if gpus:
 
 
 # =================== Parameters ============================
-fname = Path('./_results/find_latent_dim_32.h5')
-tempfn_ae = './temp_weights_32.h5'
+fname = Path('./_results/find_latent_dim_16to32.h5')
+tempfn_ae = './temp_weights_16to32.h5'
 if fname.exists():
     raise ValueError('File for writing results already exists.')
 
-which_sets = [PIVdata.PIV7, PIVdata.PIV9, PIVdata.PIV12
-, PIVdata.PIV17]
+# which_sets = [PIVdata.PIV7, PIVdata.PIV9, PIVdata.PIV12, PIVdata.PIV17]
+which_sets = PIVdata.all_tests()
 
 nfft_psd = 1024
 overlap = nfft_psd/2
@@ -64,7 +64,7 @@ lrschedule = tf.keras.optimizers.schedules.CosineDecayRestarts(
 )
 
 
-latent_dim_list = [32]
+latent_dim_list = [16,32]
 num_repeats = 3
 
 
