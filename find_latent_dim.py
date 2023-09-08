@@ -7,14 +7,12 @@ import MD_AE_tools.models.models_ff as modelff
 
 from pathlib import Path
 from tensorflow.keras.callbacks import ModelCheckpoint
-from project_specific_utils import read_pressure
-from project_specific_utils.read_pressure import PIVdata
 
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     try:
-        tf.config.set_visible_devices(gpus[2], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
-        tf.config.set_logical_device_configuration(gpus[2],[tf.config.LogicalDeviceConfiguration(memory_limit=4096)]) # set hard memory limit
+        tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+        tf.config.set_logical_device_configuration(gpus[1],[tf.config.LogicalDeviceConfiguration(memory_limit=20000)]) # set hard memory limit
         # tf.config.experimental.set_memory_growth(gpus[2], True) # allow memory growth
         logical_gpus = tf.config.list_logical_devices('GPU')
         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
@@ -25,18 +23,17 @@ if gpus:
 
 
 # =================== Parameters ============================
-fname = Path('./_results/find_latent_dim_16to32.h5')
-tempfn_ae = './temp_weights_16to32.h5'
+fname = Path('./_results/find_latent_dim_2to10.h5')
+tempfn_ae = './temp_weights_2to10.h5'
+# fname = Path('./_results/find_latent_dim_16to24.h5')
+# tempfn_ae = './temp_weights_16to24.h5'
 if fname.exists():
     raise ValueError('File for writing results already exists.')
 
-# which_sets = [PIVdata.PIV7, PIVdata.PIV9, PIVdata.PIV12, PIVdata.PIV17]
-which_sets = PIVdata.all_tests()
 
 nfft_psd = 1024
 overlap = nfft_psd/2
 sampling_freq = 720
-num_of_tests = len(which_sets)
 D = 196.5 #mm
 Uinf = 15 #m/s
 
@@ -52,8 +49,8 @@ decoder_layers = [64,128,256,256,128]
 
 
 ## training
-nb_epoch = 7000
-batch_size = 300
+nb_epoch = 5000
+batch_size = 200000
 learning_rate = 0.004
 
 lrschedule = tf.keras.optimizers.schedules.CosineDecayRestarts(
@@ -64,16 +61,18 @@ lrschedule = tf.keras.optimizers.schedules.CosineDecayRestarts(
 )
 
 
-latent_dim_list = [16,32]
+latent_dim_list = [2,3,5,10]
+# latent_dim_list = [16,19,20,24]
 num_repeats = 3
 
 
 # ================ Data ================
 
-with h5py.File('./data/raw_pressure.h5','r') as hf:
-    dt = np.squeeze(hf.get('dt'))
+with h5py.File('./data/raw_pressure_long.h5','r') as hf:
+    print(hf.keys())
+    fs = np.squeeze(hf.get('fs'))
     static_p = np.squeeze(hf.get('static_p'))
-    esp = np.array(hf.get('esp')).T
+    esp_allt = np.array(hf.get('esp')).T
     r = np.array(hf.get('r')).T
     theta = np.array(hf.get('theta')).T
 x=(np.cos(theta*np.pi/180).T)*r
@@ -81,7 +80,6 @@ y=(np.sin(theta*np.pi/180).T)*r
 x = x.flatten()
 y = y.flatten()
 
-esp_allt = np.concatenate(esp[which_sets,:,:],axis=1)
 pmean = np.mean(esp_allt,axis=1).reshape(8,8)
 prms = np.std(esp_allt,axis=1)
 
@@ -138,9 +136,8 @@ for i in range(len(latent_dim_list)):
         loss_history[i,j,:] = hist.history['loss']
         
         ae.load_weights(tempfn_ae)
-        pred = ae.predict(p_train)
+        l2error = ae.evaluate(p_train,p_train,batch_size=batch_size)
         
-        l2error = np.mean((pred - p_train)**2)
         loss_best[i,j] = l2error
 
 

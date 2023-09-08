@@ -1,4 +1,6 @@
 import numpy as np
+import jax.numpy as jnp
+from jax import vmap
 from scipy import interpolate, ndimage
 from enum import IntEnum
 
@@ -84,29 +86,31 @@ def interp(p:np.ndarray,
 def cop(p:np.ndarray ,r:np.ndarray = _r, theta:np.ndarray = _theta):
     '''Centre of pressure for a pressure snapshot.\n
     
-    p: numpy array of raw pressure data, with shape [theta,r] or flattened\n
+    p: numpy array of raw pressure data, with shape [theta,r,t] or flattened [theta*r,t]\n
     theta, r: arrays of  angles and radius\n
 
     Return:\n
         rx,ry: the x,y coordinates of the centre of pressure
     '''
 
-    ptmp = p.reshape(8,8)
-    dAi = np.zeros((1,8))
-    ri = np.zeros((1,8))
-    dr = r[0,1]-r[0,0]
-    dth = 2*np.pi/8
-    for i in range(1,8):
-        ri[0,i] = 0.5*(r[0,i]+r[0,i-1])
-        dAi[0,i] = ri[0,i]*dr*dth
-    ptrapz = 0.5*(ptmp[:,:-1]+ptmp[:,1:])
-    dAi = dAi[[0],1:]
-    ri = ri[[0],1:]
-    xi = np.cos(theta*np.pi/180).T * ri##
-    yi = np.sin(theta*np.pi/180).T * ri
-    dA = np.tile(dAi,(8,1))
-    sum_pa = np.sum(ptrapz * dA)
-    rx = (1/sum_pa) * (np.sum(ptrapz*xi*dA))
-    ry = (1/sum_pa) * (np.sum(ptrapz*yi*dA))
+    pnew = jnp.asarray(p)
 
-    return rx,ry
+    def _single_snapshot(psingle):
+        ptmp = psingle.reshape(8,8)
+        dr = r[0,1]-r[0,0]
+        dth = 2*jnp.pi/8
+        ri = 0.5*(r[0,1:]+r[0,:-1])
+        dAi = ri*dr*dth
+        ptrapz = 0.5*(ptmp[:,:-1]+ptmp[:,1:])
+        xi = jnp.cos(theta*jnp.pi/180).T * ri##
+        yi = jnp.sin(theta*jnp.pi/180).T * ri
+        dA = jnp.tile(dAi,(8,1))
+        sum_pa = jnp.sum(ptrapz * dA)
+        rx_single = (1/sum_pa) * (jnp.sum(ptrapz*xi*dA))
+        ry_single = (1/sum_pa) * (jnp.sum(ptrapz*yi*dA))
+        return jnp.array([rx_single,ry_single])
+    
+    _multi_snapshots = vmap(_single_snapshot,in_axes=-1)
+
+
+    return _multi_snapshots(pnew)

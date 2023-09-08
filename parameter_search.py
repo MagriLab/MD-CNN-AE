@@ -24,7 +24,7 @@ encoder_layers = [128,256,256,128,64]
 decoder_layers = [64,128,256,256,128]
 
 act_fct = 'tanh'
-nb_epoch = 7000
+nb_epoch = 5000
 
 
 # =======================================================
@@ -32,23 +32,23 @@ nb_epoch = 7000
 lmb = 0.0000 #1e-05 #regulariser
 drop_rate = 0.0
 batch_norm = True
-batch_size = 300
 learning_rate = 0.004
+batch_size = 200000
 
 
 # ================== system & data =====================
-set_gpu(gpu_id,4096)
+set_gpu(gpu_id,20000)
 
-with h5py.File('./data/raw_pressure.h5','r') as hf:
-    dt = np.squeeze(hf.get('dt'))
-    static_p = np.squeeze(hf.get('static_p'))
-    esp = np.array(hf.get('esp')).T
-    r = np.array(hf.get('r')).T
-    theta = np.array(hf.get('theta')).T
-x=(np.cos(theta*np.pi/180).T)*r
-y=(np.sin(theta*np.pi/180).T)*r 
-x = x.flatten()
-y = y.flatten()
+# with h5py.File('./data/raw_pressure.h5','r') as hf:
+#     dt = np.squeeze(hf.get('dt'))
+#     static_p = np.squeeze(hf.get('static_p'))
+#     esp = np.array(hf.get('esp')).T
+#     r = np.array(hf.get('r')).T
+#     theta = np.array(hf.get('theta')).T
+# x=(np.cos(theta*np.pi/180).T)*r
+# y=(np.sin(theta*np.pi/180).T)*r 
+# x = x.flatten()
+# y = y.flatten()
 
 esp_allt = np.concatenate(esp[which_sets,:,:],axis=1)
 pmean = np.mean(esp_allt,axis=1).reshape(8,8)
