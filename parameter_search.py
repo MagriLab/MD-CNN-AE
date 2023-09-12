@@ -115,7 +115,7 @@ update = create_update_fn(ae,loss_fn,optimiser)
 
 current_best_loss = np.inf
 
-for _ in range(nb_epoch):
+for i in range(nb_epoch):
     loss_epoch = []
     for batch in data_train:
         loss_batch = update(batch,batch).numpy()
@@ -126,6 +126,9 @@ for _ in range(nb_epoch):
         current_best_loss = loss_batch
     
     run.log({'loss':loss, 'current_best_loss':current_best_loss})
+
+    if i//10 == 0:
+        print(f'Epoch {i}, loss {loss}')
 
 
 run.save('parameter_search.py')
