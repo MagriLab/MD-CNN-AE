@@ -10,21 +10,18 @@ from tensorflow.keras.optimizers import Adam
 
 import MD_AE_tools.models.models_ff as my_models
 from project_specific_utils.data_and_train import create_update_fn, set_gpu
-from project_specific_utils.read_pressure import PIVdata
 
 
 
 # ==================== Change these ====================
 
-gpu_id = 2
-which_sets = PIVdata.all_tests()
 
-latent_dim = 2
+latent_dim = 3
 encoder_layers = [128,256,256,128,64]
 decoder_layers = [64,128,256,256,128]
 
 act_fct = 'tanh'
-nb_epoch = 5000
+nb_epoch = 6000
 
 
 # =======================================================
@@ -37,20 +34,19 @@ batch_size = 200000
 
 
 # ================== system & data =====================
-set_gpu(gpu_id,20000)
 
-# with h5py.File('./data/raw_pressure.h5','r') as hf:
-#     dt = np.squeeze(hf.get('dt'))
-#     static_p = np.squeeze(hf.get('static_p'))
-#     esp = np.array(hf.get('esp')).T
-#     r = np.array(hf.get('r')).T
-#     theta = np.array(hf.get('theta')).T
-# x=(np.cos(theta*np.pi/180).T)*r
-# y=(np.sin(theta*np.pi/180).T)*r 
-# x = x.flatten()
-# y = y.flatten()
+with h5py.File('./data/raw_pressure_long.h5','r') as hf:
+    print(hf.keys())
+    fs = np.squeeze(hf.get('fs'))
+    static_p = np.squeeze(hf.get('static_p'))
+    esp_allt = np.array(hf.get('esp')).T
+    r = np.array(hf.get('r')).T
+    theta = np.array(hf.get('theta')).T
+x=(np.cos(theta*np.pi/180).T)*r
+y=(np.sin(theta*np.pi/180).T)*r 
+x = x.flatten()
+y = y.flatten()
 
-esp_allt = np.concatenate(esp[which_sets,:,:],axis=1)
 pmean = np.mean(esp_allt,axis=1).reshape(8,8)
 prms = np.std(esp_allt,axis=1)
 

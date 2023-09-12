@@ -11,8 +11,8 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     try:
-        tf.config.set_visible_devices(gpus[1], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
-        tf.config.set_logical_device_configuration(gpus[1],[tf.config.LogicalDeviceConfiguration(memory_limit=20000)]) # set hard memory limit
+        tf.config.set_visible_devices(gpus[2], 'GPU')# use [] for cpu only, gpus[i] for the ith gpu
+        tf.config.set_logical_device_configuration(gpus[2],[tf.config.LogicalDeviceConfiguration(memory_limit=25000)]) # set hard memory limit
         # tf.config.experimental.set_memory_growth(gpus[2], True) # allow memory growth
         logical_gpus = tf.config.list_logical_devices('GPU')
         print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
@@ -23,10 +23,14 @@ if gpus:
 
 
 # =================== Parameters ============================
-fname = Path('./_results/find_latent_dim_2to10.h5')
-tempfn_ae = './temp_weights_2to10.h5'
+# fname = Path('./_results/find_latent_dim_2to10.h5')
+# tempfn_ae = './temp_weights_2to10.h5'
 # fname = Path('./_results/find_latent_dim_16to24.h5')
 # tempfn_ae = './temp_weights_16to24.h5'
+# fname = Path('./_results/find_latent_dim_6and9.h5')
+# tempfn_ae = './temp_weights_6and9.h5'
+fname = Path('./_results/find_latent_dim_4.h5')
+tempfn_ae = './temp_weights_4.h5'
 if fname.exists():
     raise ValueError('File for writing results already exists.')
 
@@ -49,7 +53,7 @@ decoder_layers = [64,128,256,256,128]
 
 
 ## training
-nb_epoch = 5000
+nb_epoch = 4000
 batch_size = 200000
 learning_rate = 0.004
 
@@ -61,8 +65,10 @@ lrschedule = tf.keras.optimizers.schedules.CosineDecayRestarts(
 )
 
 
-latent_dim_list = [2,3,5,10]
+# latent_dim_list = [2,3,5,10]
 # latent_dim_list = [16,19,20,24]
+# latent_dim_list = [6,9]
+latent_dim_list = [4]
 num_repeats = 3
 
 
