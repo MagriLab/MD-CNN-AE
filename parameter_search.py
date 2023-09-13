@@ -21,7 +21,7 @@ encoder_layers = [128,256,256,128,64]
 decoder_layers = [64,128,256,256,128]
 
 act_fct = 'tanh'
-nb_epoch = 6000
+nb_epoch = 3000
 
 
 # =======================================================
@@ -127,7 +127,7 @@ for i in range(nb_epoch):
     
     run.log({'loss':loss, 'current_best_loss':current_best_loss})
 
-    if i//10 == 0:
+    if i%10 == 0:
         print(f'Epoch {i}, loss {loss}')
 
 
