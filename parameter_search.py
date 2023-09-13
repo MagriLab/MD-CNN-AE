@@ -83,7 +83,7 @@ params = wandb.config
 
 loss_fn = tf.keras.losses.MeanSquaredError()
 # data_train = dataset.batch(params.batch_size)
-data_train = dataset.shuffle(params.batch_size+100).batch(params.batch_size)
+# data_train = dataset.shuffle(params.batch_size+100).batch(params.batch_size)
 
 lrschedule = tf.keras.optimizers.schedules.CosineDecayRestarts(
     params.learning_rate,
@@ -104,31 +104,51 @@ ae = my_models.Autoencoder(
     lmb = params.regularisation
 )
 
-ae.build((None,input_shape))
+ae.compile(optimizer=optimiser, loss='mse')
+
+# ae.build((None,input_shape))
 print(ae.summary())
 print(params)
 
-update = create_update_fn(ae,loss_fn,optimiser)
+# update = create_update_fn(ae,loss_fn,optimiser)
 
 
 # =================== Training =========================
 
 current_best_loss = np.inf
 
-for i in range(nb_epoch):
-    loss_epoch = []
-    for batch in data_train:
-        loss_batch = update(batch,batch).numpy()
-        loss_epoch.append(loss_batch)
-    loss = np.mean(loss_epoch)
+# for i in range(nb_epoch):
+#     loss_epoch = []
+#     for batch in data_train:
+#         loss_batch = update(batch,batch).numpy()
+#         loss_epoch.append(loss_batch)
+#     loss = np.mean(loss_epoch)
 
-    if loss_batch < current_best_loss:
-        current_best_loss = loss_batch
+#     if loss_batch < current_best_loss:
+#         current_best_loss = loss_batch
     
-    run.log({'loss':loss, 'current_best_loss':current_best_loss})
+#     run.log({'loss':loss, 'current_best_loss':current_best_loss})
 
-    if i%10 == 0:
-        print(f'Epoch {i}, loss {loss}')
+#     if i%10 == 0:
+#         print(f'Epoch {i}, loss {loss}')
+
+
+hist = ae.fit(
+    p_train,
+    p_train,
+    epochs=nb_epoch,
+    batch_size=batch_size,
+    shuffle=True,
+    verbose=2
+)
+
+loss_list = hist.history['loss']
+for i in range(len):
+
+    if loss_list[i] < current_best_loss:
+        current_best_loss = loss_list[i]
+
+    run.log({'loss':loss_list[i], 'current_best_loss':current_best_loss})
 
 
 run.save('parameter_search.py')
