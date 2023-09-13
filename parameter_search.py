@@ -143,7 +143,7 @@ hist = ae.fit(
 )
 
 loss_list = hist.history['loss']
-for i in range(len):
+for i in range(nb_epoch):
 
     if loss_list[i] < current_best_loss:
         current_best_loss = loss_list[i]
