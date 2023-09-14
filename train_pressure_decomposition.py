@@ -75,9 +75,7 @@ def main(args):
         os.environ["WANDB_MODE"] = "offline"
 
     save_to = Path(args.save_to)    
-    if save_to.exists():
-        raise ValueError("'save_to' directory already exist, do not overwrite.")
-    else:
+    if not save_to.exists():
         print('Making result directory.')
         save_to.mkdir()
 
@@ -105,7 +103,7 @@ def main(args):
     )
 
     config = {
-        'nb_poch': nb_epoch,
+        'nb_epoch': nb_epoch,
         'latent_dim': latent_dim,
         'batch_norm': batch_norm,
         'batch_size': batch_size,
@@ -141,10 +139,12 @@ def main(args):
     # =============== Train ================
     for i in range(repeats):
 
-        folder = Path(save_to,f'Nz{latent_dim}-{pid}-repeat{i}')
+        name = f'Nz{latent_dim}-{pid}-repeat{i}'
+        folder = Path(save_to,name)
         print(f'Running repeat {i+1}, saving to {str(folder)}.')
+        folder.mkdir(exist_ok=False)
 
-        run = wandb.init(config=config, project='POD_and_AE',group='decompose_pressure', reinit=True)
+        run = wandb.init(config=config, project='POD_and_AE',group='decompose_pressure', reinit=True, name=name)
 
         loss_list, best_loss_list = train_and_save(config, p_train, folder, lrschedule)
 
