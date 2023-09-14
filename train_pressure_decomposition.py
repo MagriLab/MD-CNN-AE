@@ -82,7 +82,7 @@ def main(args):
         save_to.mkdir()
 
     repeats = args.repeats
-    pid = os.get_pid()
+    pid = os.getpid()
     
     # ======== hyperparameters=============
     
