@@ -291,7 +291,7 @@ class POD:
             Q_add = A[idx] @ Phi[idx].T
         rebuildv = np.reshape(Q_mean,(-1,1)) + Q_add
         if shape == 'self':
-            new_shape = self.grid_shape
+            new_shape = np.copy(self.grid_shape).tolist()
             new_shape.append(-1)
             rebuildv = np.reshape(rebuildv,tuple(new_shape))
         else:
