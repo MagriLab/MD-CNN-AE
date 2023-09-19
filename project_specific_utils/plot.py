@@ -64,6 +64,7 @@ def scatter_matrix(data:typing.Union[np.ndarray,list],
     return fig, ax
 
 
+# https://stackoverflow.com/questions/8263769/hide-contour-linestroke-on-pyplot-contourf-to-get-only-fills
 def hide_contour_lines(*contour_plots: QuadContourSet):
     '''Hide contour lines from contourf plots.'''
 
