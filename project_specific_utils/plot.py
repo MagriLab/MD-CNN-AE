@@ -7,6 +7,7 @@ import warnings
 import typing
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+from matplotlib.contour import QuadContourSet
 
 
 def scatter_matrix(data:typing.Union[np.ndarray,list], 
@@ -61,3 +62,11 @@ def scatter_matrix(data:typing.Union[np.ndarray,list],
     fig.subplots_adjust(wspace=space[0], hspace=space[1])
 
     return fig, ax
+
+
+def hide_contour_lines(*contour_plots: QuadContourSet):
+    '''Hide contour lines from contourf plots.'''
+
+    for image in contour_plots:
+        for c in image.collections:
+            c.set_edgecolor("face")
