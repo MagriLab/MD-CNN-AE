@@ -208,7 +208,7 @@ class POD:
         Arguments:
             Q: np.array of fluctuating velocity, with shape [nx,nt], where nx is the number of data points and nt is the number of snapshots.
         '''
-        C = Q @ ((Q.T)*(self.w.T))/(self.nt-1) # 2-point spatial correlation tesnsor: Q*Q'
+        C = (Q*self.w) @ ((Q.T)*(self.w.T))/(self.nt-1) # 2-point spatial correlation tesnsor: Q*Q'
         # print('C is Hermitian?',np.allclose(C,np.conj(C.T)))
         lam,Phi = np.linalg.eigh(C) # right eigenvectors and eigenvalues
         idx = np.argsort(lam) # sort
@@ -230,7 +230,7 @@ class POD:
         Arguments:
             Q: np.array of fluctuating velocity, with shape [nx,nt], where nx is the number of data points and nt is the number of snapshots.
         '''
-        C = (Q.T) @ (Q*self.w)/(self.nt-1) # 2-point temporal correlation tesnsor: Q'*Q 
+        C = (Q.T*self.w.T) @ (Q*self.w)/(self.nt-1) # 2-point temporal correlation tesnsor: Q'*Q 
         lam,Phi = np.linalg.eigh(C)
         idx = np.argsort(np.abs(lam)) # sort
         idx = np.flip(idx)
