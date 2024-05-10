@@ -15,8 +15,9 @@ Mode decomposition with autoencoders.
 
     - python 3.9.7 
     - tensorflow 2.7.0 
-    - numpy 1.20.3 
+    - numpy 1.22.4 
     - matplotlib 3.4.3 
+    - jax 0.4.9
 
 ## Setting up:
 Create a file **_system.ini** that contains results saving location. Example config files are available in *examples/config_files/*
