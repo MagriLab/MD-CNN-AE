@@ -2,6 +2,8 @@
 
 Mode decomposition with autoencoders. 
 
+This repo is linked to the paper under review [Decoder Decomposition for the Analysis of the Latent Space of Nonlinear Autoencoders With Wind-Tunnel Experimental Data](https://arxiv.org/abs/2404.19660)
+
 ## Content:
 
     1. Models for mode decomposing autoencoder (MD-CNN-AE) (Murata, Fukami & Fukagata, 2020), 
