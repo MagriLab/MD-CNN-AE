@@ -2,6 +2,9 @@
 
 Mode decomposition with autoencoders. 
 
+This repo is linked to the paper under review [Decoder Decomposition for the Analysis of the Latent Space of Nonlinear Autoencoders With Wind-Tunnel Experimental Data](https://arxiv.org/abs/2404.19660).
+For lecture material please go to branch **lecture-material-may2024**.
+
 ## Content:
 
     1. Models for mode decomposing autoencoder (MD-CNN-AE) (Murata, Fukami & Fukagata, 2020), 
@@ -17,6 +20,7 @@ Mode decomposition with autoencoders.
     - tensorflow 2.7.0 
     - numpy 1.20.3 
     - matplotlib 3.4.3 
+    - jax 0.4.9
 
 ## Setting up:
 Create a file **_system.ini** that contains results saving location. Example config files are available in *examples/config_files/*
